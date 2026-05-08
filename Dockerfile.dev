@@ -1,0 +1,10 @@
+# Tek dev imajı — api ve web servisleri aynı imajdan farklı komutla çalışır.
+FROM node:20-alpine
+
+RUN apk add --no-cache bash openssl
+RUN npm install -g pnpm@10
+
+WORKDIR /app
+
+# Default komut compose tarafından override edilir.
+CMD ["sh"]

@@ -1,0 +1,75 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+.yarn/
+.npm/
+
+# Build artifacts
+dist/
+build/
+out/
+.next/
+.turbo/
+.cache/
+.parcel-cache/
+*.tsbuildinfo
+.tsbuildinfo
+
+# Expo / React Native
+.expo/
+.expo-shared/
+.expo/web-build/
+ios/
+android/
+*.jks
+*.keystore
+*.mobileprovision
+*.p8
+*.p12
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+.env.development
+.env.production
+.env.test
+!.env.example
+
+# API runtime artifacts
+apps/api/uploads/
+apps/api/prisma/*.db
+apps/api/prisma/*.db-journal
+apps/api/prisma/migrations/dev.db*
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Editors / IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Test / coverage
+coverage/
+.nyc_output/
+*.lcov
+
+# Misc
+.tmp/
+tmp/
+.tmp-*

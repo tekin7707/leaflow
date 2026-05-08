@@ -1,0 +1,19 @@
+{
+  "name": "provit",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -n api,web -c green,cyan \"pnpm --filter api dev\" \"pnpm --filter web dev\"",
+    "seed": "pnpm --filter api seed",
+    "db:push": "pnpm --filter api db:push",
+    "test": "pnpm --filter api test"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1"
+  },
+  "packageManager": "pnpm@10.0.0",
+  "engines": {
+    "node": ">=20"
+  }
+}

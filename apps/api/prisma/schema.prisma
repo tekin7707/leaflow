@@ -1,0 +1,244 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id          String   @id @default(cuid())
+  externalId  String   @unique
+  email       String   @unique
+  displayName String
+  firstName   String?
+  lastName    String?
+  avatarUrl   String?
+  pushToken   String?
+  agentechRole       String?
+  agentechAccessToken  String?
+  agentechRefreshToken String?
+  agentechTokenExpiresAt DateTime?
+  createdAt   DateTime @default(now())
+
+  memberships TeamMember[]
+  taskRuns    TaskRun[]    @relation("Assignee")
+  decisions   Approval[]   @relation("Approver")
+}
+
+model TeamRef {
+  id         String   @id @default(cuid())
+  externalId String?  @unique
+  name       String
+  code       String   @unique
+  createdAt  DateTime @default(now())
+
+  members     TeamMember[]
+  assignments Assignment[]
+}
+
+enum TeamRole {
+  MANAGER
+  MEMBER
+}
+
+model TeamMember {
+  id     String   @id @default(cuid())
+  team   TeamRef  @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  teamId String
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String
+  role   TeamRole @default(MEMBER)
+
+  @@unique([teamId, userId])
+}
+
+model QuestionGroup {
+  id        String     @id @default(cuid())
+  name      String
+  createdAt DateTime   @default(now())
+  questions Question[]
+  tasks     Task[]
+}
+
+enum AnswerType {
+  YES_NO
+  YES_NO_NA
+  TEXT
+  NUMBER
+}
+
+model Question {
+  id         String        @id @default(cuid())
+  group      QuestionGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId    String
+  text       String
+  answerType AnswerType    @default(YES_NO)
+  weight     Int           @default(3)
+  required   Boolean       @default(true)
+  order      Int
+
+  answers    Answer[]
+}
+
+model TaskGroup {
+  id               String   @id @default(cuid())
+  name             String
+  description      String?
+  requiresApproval Boolean  @default(false)
+  minFiles         Int      @default(0)
+  recurrence       String?
+  createdAt        DateTime @default(now())
+
+  tasks       Task[]
+  assignments Assignment[]
+}
+
+model Task {
+  id               String         @id @default(cuid())
+  group            TaskGroup      @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  groupId          String
+  name             String
+  description      String?
+  order            Int
+  estimatedMinutes Int            @default(15)
+  minFiles         Int            @default(0)
+  requiresApproval Boolean        @default(false)
+  questionGroup    QuestionGroup? @relation(fields: [questionGroupId], references: [id])
+  questionGroupId  String?
+  dependsOn        String[]       @default([])
+
+  taskRuns TaskRun[]
+}
+
+enum AssignmentStatus {
+  SCHEDULED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+model Assignment {
+  id         String           @id @default(cuid())
+  group      TaskGroup        @relation(fields: [groupId], references: [id])
+  groupId    String
+  team       TeamRef          @relation(fields: [teamId], references: [id])
+  teamId     String
+  startsAt   DateTime
+  endsAt     DateTime
+  approverId String?
+  status     AssignmentStatus @default(SCHEDULED)
+  createdAt  DateTime         @default(now())
+
+  runs TaskGroupRun[]
+}
+
+enum RunStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model TaskGroupRun {
+  id           String     @id @default(cuid())
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  assignmentId String
+  date         DateTime
+  status       RunStatus  @default(PENDING)
+
+  taskRuns TaskRun[]
+
+  @@unique([assignmentId, date])
+}
+
+enum TaskRunStatus {
+  BLOCKED
+  PENDING
+  IN_PROGRESS
+  AWAITING_APPROVAL
+  DONE
+  APPROVED
+  REJECTED
+}
+
+model TaskRun {
+  id          String        @id @default(cuid())
+  run         TaskGroupRun  @relation(fields: [runId], references: [id], onDelete: Cascade)
+  runId       String
+  task        Task          @relation(fields: [taskId], references: [id])
+  taskId      String
+  assignee    User?         @relation("Assignee", fields: [assigneeId], references: [id])
+  assigneeId  String?
+  status      TaskRunStatus @default(BLOCKED)
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  proofs    Proof[]
+  answers   Answer[]
+  approvals Approval[]
+
+  @@unique([runId, taskId])
+}
+
+model Proof {
+  id         String   @id @default(cuid())
+  taskRun    TaskRun  @relation(fields: [taskRunId], references: [id], onDelete: Cascade)
+  taskRunId  String
+  answer     Answer?  @relation(fields: [answerId], references: [id], onDelete: Cascade)
+  answerId   String?
+  key        String
+  filename   String
+  mime       String
+  sizeBytes  Int
+  uploadedAt DateTime @default(now())
+
+  @@index([taskRunId])
+  @@index([answerId])
+}
+
+model Answer {
+  id         String   @id @default(cuid())
+  taskRun    TaskRun  @relation(fields: [taskRunId], references: [id], onDelete: Cascade)
+  taskRunId  String
+  question   Question @relation(fields: [questionId], references: [id])
+  questionId String
+  value      String
+  note       String?
+
+  proofs Proof[]
+
+  @@unique([taskRunId, questionId])
+}
+
+enum ApprovalDecision {
+  PENDING
+  APPROVED
+  CHANGES_REQUESTED
+}
+
+model Approval {
+  id         String           @id @default(cuid())
+  taskRun    TaskRun          @relation(fields: [taskRunId], references: [id], onDelete: Cascade)
+  taskRunId  String
+  approver   User?            @relation("Approver", fields: [approverId], references: [id])
+  approverId String?
+  decision   ApprovalDecision @default(PENDING)
+  comment    String?
+  decidedAt  DateTime?
+  createdAt  DateTime         @default(now())
+}
+
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String
+  kind      String
+  title     String
+  body      String
+  data      Json?
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, readAt])
+}

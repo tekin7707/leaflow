@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "Provit",
+    "slug": "provit",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "backgroundColor": "#FAF8F4",
+      "resizeMode": "contain"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": { "supportsTablet": true },
+    "android": { "adaptiveIcon": { "backgroundColor": "#FAF8F4" } },
+    "web": { "favicon": null },
+    "plugins": [
+      ["expo-camera", { "cameraPermission": "Görev kanıtı için fotoğraf çekmenize izin verin." }],
+      ["expo-image-picker", { "photosPermission": "Görev kanıtı için galeriden seçim yapmanıza izin verin." }],
+      "expo-notifications"
+    ],
+    "extra": {
+      "apiUrl": "http://localhost:7051"
+    }
+  }
+}
