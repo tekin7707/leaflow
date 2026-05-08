@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../api';
 import { Card, SectionLabel, Pill, StatusPill, Button, Empty } from '../components/UI';
@@ -56,16 +57,18 @@ export default function Timeline() {
                 </div>
                 <div className="col">
                   {items.map((tr) => (
-                    <Card key={tr.id} pad="sm" style={{ cursor: 'pointer' }}>
-                      <div style={{ fontWeight: 600, fontSize: 13 }}>{tr.task.name}</div>
-                      <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>
-                        {tr.run.assignment.group.name}
-                      </div>
-                      <div style={{ display: 'flex', gap: 4, marginTop: 8 }}>
-                        <Pill>{tr.run.assignment.team.name}</Pill>
-                        <Pill>{fmtDay(tr.run.date)}</Pill>
-                      </div>
-                    </Card>
+                    <Link key={tr.id} to={`/task-runs/${tr.id}`} style={{ textDecoration: 'none' }}>
+                      <Card pad="sm" style={{ cursor: 'pointer' }}>
+                        <div style={{ fontWeight: 600, fontSize: 13 }}>{tr.task.name}</div>
+                        <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>
+                          {tr.run.assignment.group.name}
+                        </div>
+                        <div style={{ display: 'flex', gap: 4, marginTop: 8 }}>
+                          <Pill>{tr.run.assignment.team.name}</Pill>
+                          <Pill>{fmtDay(tr.run.date)}</Pill>
+                        </div>
+                      </Card>
+                    </Link>
                   ))}
                 </div>
               </div>

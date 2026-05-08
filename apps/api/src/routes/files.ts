@@ -1,63 +1,64 @@
 import express from 'express';
-import path from 'node:path';
-import fs from 'node:fs/promises';
-import { createReadStream } from 'node:fs';
-import { FileUploadUrlSchema } from '@provit/shared/schemas';
-import { config } from '../config.js';
 import { adapters } from '../adapters/index.js';
 import { requireAuth } from '../auth.js';
 import { wrap, badRequest } from '../errors.js';
 
 export const filesRoutes = express.Router();
 
-const uploadRoot = path.resolve(process.cwd(), config.uploadDir);
-await fs.mkdir(uploadRoot, { recursive: true });
+/**
+ * Returns Fiload coordinates the client uses for direct upload.
+ * Mobile/web POST multipart to {uploadUrl}, then send back { path } as a proof.
+ */
+filesRoutes.get(
+  '/config',
+  requireAuth,
+  wrap(async (_req, res) => {
+    res.json({
+      uploadUrl: adapters.files.uploadEndpoint(),
+      uploadBase64Url: adapters.files.uploadBase64Endpoint(),
+    });
+  }),
+);
 
-filesRoutes.post(
-  '/upload-url',
+/** Build a public Fiload download URL for a stored path. */
+filesRoutes.get(
+  '/download',
   requireAuth,
   wrap(async (req, res) => {
-    const data = FileUploadUrlSchema.parse(req.body);
-    const out = await adapters.files.createUploadUrl(data);
-    res.json(out);
+    const path = String(req.query.path ?? '');
+    if (!path) throw badRequest('path is required');
+    res.json({ url: adapters.files.downloadUrl(path) });
   }),
 );
 
+/** Build a public Fiload preview URL for a stored path. */
 filesRoutes.get(
-  '/download/:key',
+  '/preview',
   requireAuth,
   wrap(async (req, res) => {
-    const out = await adapters.files.createDownloadUrl(req.params.key);
-    res.json(out);
+    const path = String(req.query.path ?? '');
+    if (!path) throw badRequest('path is required');
+    res.json({ url: adapters.files.previewUrl(path) });
   }),
 );
 
-// PUT /api/files/raw/:key — local upload sink (no auth — presigned-style)
-filesRoutes.put(
-  '/raw/:key',
-  express.raw({ type: '*/*', limit: '50mb' }),
-  wrap(async (req, res) => {
-    const key = req.params.key;
-    if (!/^[\w.-]+$/.test(key)) throw badRequest('Invalid key');
-    const target = path.join(uploadRoot, key);
-    await fs.writeFile(target, req.body);
-    res.status(204).end();
-  }),
-);
-
-// GET /api/files/raw/:key — local download
+/**
+ * Streams a Fiload-stored file as binary so it can be used directly as an
+ * <img src>. Fiload's /gt returns base64 text; we decode it once here.
+ * Accepts either ?path= or ?filename= for backwards compatibility — both
+ * carry the value returned by /upld.
+ */
 filesRoutes.get(
-  '/raw/:key',
+  '/raw',
   wrap(async (req, res) => {
-    const key = req.params.key;
-    if (!/^[\w.-]+$/.test(key)) throw badRequest('Invalid key');
-    const target = path.join(uploadRoot, key);
-    try {
-      await fs.access(target);
-    } catch {
-      return res.status(404).json({ error: 'not_found' });
-    }
-    res.setHeader('Content-Type', 'application/octet-stream');
-    createReadStream(target).pipe(res);
+    const filename = String(req.query.filename ?? req.query.path ?? '');
+    if (!filename) throw badRequest('filename is required');
+    const mime = String(req.query.mime ?? 'application/octet-stream');
+    const b64 = await adapters.files.downloadBase64(filename);
+    if (!b64) return res.status(404).end();
+    const buf = Buffer.from(b64, 'base64');
+    res.setHeader('Content-Type', mime);
+    res.setHeader('Cache-Control', 'private, max-age=300');
+    res.end(buf);
   }),
 );

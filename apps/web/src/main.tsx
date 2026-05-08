@@ -17,6 +17,7 @@ import Timeline from './pages/Timeline';
 import Approvals from './pages/Approvals';
 import Reports from './pages/Reports';
 import Notifications from './pages/Notifications';
+import TaskRunDetail from './pages/TaskRunDetail';
 
 import './styles.css';
 
@@ -49,6 +50,7 @@ createRoot(document.getElementById('root')).render(
               <Route path="approvals" element={<Approvals />} />
               <Route path="reports" element={<Reports />} />
               <Route path="notifications" element={<Notifications />} />
+              <Route path="task-runs/:id" element={<TaskRunDetail />} />
               <Route path="*" element={<Navigate to="/" />} />
             </Route>
           </Routes>

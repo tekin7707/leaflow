@@ -77,18 +77,60 @@ assignmentsRoutes.post(
 
     await materializeRuns(a.id);
 
-    // notify team members
-    const members = await prisma.teamMember.findMany({
-      where: { teamId: data.teamId },
-      include: { user: true, team: true },
-    });
     const grp = await prisma.taskGroup.findUnique({ where: { id: data.groupId } });
-    for (const m of members) {
-      adapters.push.sendToUser(m.userId, {
-        title: 'Yeni atama',
-        body: `${grp?.name ?? 'Görev grubu'} → ${m.team.name}`,
-        data: { kind: 'ASSIGNMENT_NEW', assignmentId: a.id },
+    const team = await prisma.teamRef.findUnique({ where: { id: data.teamId } });
+
+    if (data.assigneeId) {
+      // Single-assignee path: assign every freshly materialized TaskRun to this
+      // user and notify them once with a deep-link to the first task.
+      const assignee = await prisma.user.findUnique({ where: { id: data.assigneeId } });
+      if (!assignee) throw notFound('Assignee not found');
+
+      const runs = await prisma.taskGroupRun.findMany({
+        where: { assignmentId: a.id },
+        include: { taskRuns: { include: { task: true }, orderBy: { task: { order: 'asc' } } } },
+        orderBy: { date: 'asc' },
       });
+      const allTaskRuns = runs.flatMap((r) => r.taskRuns);
+      if (allTaskRuns.length) {
+        await prisma.taskRun.updateMany({
+          where: { id: { in: allTaskRuns.map((tr) => tr.id) } },
+          data: { assigneeId: assignee.id },
+        });
+        const first = allTaskRuns[0];
+        adapters.push.sendToUser(assignee.id, {
+          title: 'Yeni görev sana atandı',
+          body: `${first.task.name} · ${grp?.name ?? ''}`.trim(),
+          data: {
+            kind: 'TASK_ASSIGNED',
+            screen: 'task-detail',
+            entityType: 'taskRun',
+            entityId: first.id,
+            taskRunId: first.id,
+            assignmentId: a.id,
+            path: `/task-runs/${first.id}`,
+            deepLink: `provit://taskRun/${first.id}`,
+          },
+        });
+      }
+    } else {
+      // Team-wide path: notify each member.
+      const members = await prisma.teamMember.findMany({
+        where: { teamId: data.teamId },
+      });
+      for (const m of members) {
+        adapters.push.sendToUser(m.userId, {
+          title: 'Yeni atama',
+          body: `${grp?.name ?? 'Görev grubu'} → ${team?.name ?? ''}`.trim(),
+          data: {
+            kind: 'ASSIGNMENT_NEW',
+            screen: 'assignment-detail',
+            entityType: 'assignment',
+            entityId: a.id,
+            assignmentId: a.id,
+          },
+        });
+      }
     }
 
     res.status(201).json(a);

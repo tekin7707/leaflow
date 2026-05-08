@@ -73,7 +73,7 @@ export default function Dashboard() {
           {today.length === 0 && <Empty>Bugün için açık görev yok.</Empty>}
           <div className="list">
             {today.map((tr) => (
-              <div key={tr.id} className="list-item">
+              <Link to={`/task-runs/${tr.id}`} key={tr.id} className="list-item">
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 600, fontSize: 14 }}>{tr.task.name}</div>
                   <div className="muted" style={{ fontSize: 12 }}>
@@ -84,7 +84,7 @@ export default function Dashboard() {
                 <div className="muted-soft mono" style={{ fontSize: 11 }}>
                   {fmtTime(tr.run.date)}
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </Card>
@@ -97,7 +97,7 @@ export default function Dashboard() {
           {approvals.length === 0 && <Empty>Onay bekleyen iş yok.</Empty>}
           <div className="list">
             {approvals.slice(0, 6).map((a) => (
-              <Link to="/approvals" key={a.id} className="list-item">
+              <Link to={`/task-runs/${a.taskRunId}`} key={a.id} className="list-item">
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 600, fontSize: 14 }}>{a.taskRun.task.name}</div>
                   <div className="muted" style={{ fontSize: 12 }}>

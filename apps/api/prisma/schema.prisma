@@ -172,6 +172,7 @@ model TaskRun {
   assignee    User?         @relation("Assignee", fields: [assigneeId], references: [id])
   assigneeId  String?
   status      TaskRunStatus @default(BLOCKED)
+  note        String?
   startedAt   DateTime?
   completedAt DateTime?
 

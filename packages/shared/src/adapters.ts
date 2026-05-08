@@ -54,41 +54,48 @@ export interface ExternalProjectProfile {
   stats?: { userCount: number; adminCount: number };
 }
 
-export interface UploadUrlInput {
-  filename: string;
-  mime: string;
-  sizeBytes: number;
-}
-
-export interface UploadUrlResult {
-  key: string;
-  uploadUrl: string;
-  headers: Record<string, string>;
-}
-
 export interface AuthAdapter {
-  /** Mock returns ExternalUser only; real returns user + upstream tokens. */
-  authenticate(email: string, password: string): Promise<ExternalAuthResult | ExternalUser | null>;
-  refresh?(refreshToken: string): Promise<ExternalAuthTokens | null>;
+  authenticate(email: string, password: string): Promise<ExternalAuthResult | null>;
+  refresh(refreshToken: string): Promise<ExternalAuthTokens | null>;
   getProjectProfile?(accessToken: string): Promise<ExternalProjectProfile | null>;
+  logout?(refreshToken: string, accessToken?: string): Promise<void>;
 }
 
 export interface TeamsAdapter {
-  /** Single team lookup by upstream id (used for sync). */
-  getTeam?(externalId: string, accessToken?: string): Promise<ExternalTeam | null>;
-  /** List teams visible to the current user. */
-  listTeams?(accessToken: string): Promise<ExternalTeam[]>;
-  /** List members for a given team. */
-  listMembers?(teamId: string, accessToken: string): Promise<ExternalTeam['members']>;
-  /** Search users in the project (admin pool). */
+  getTeam(externalId: string, accessToken?: string): Promise<ExternalTeam | null>;
+  listTeams(accessToken: string): Promise<ExternalTeam[]>;
+  listMembers(teamId: string, accessToken: string): Promise<ExternalTeam['members']>;
   searchUsers(query: string, accessToken?: string): Promise<ExternalUser[]>;
-  /** Users in the project pool not yet attached to the team. */
-  availableUsers?(teamId: string, accessToken: string): Promise<ExternalUser[]>;
+  availableUsers(teamId: string, accessToken: string): Promise<ExternalUser[]>;
+  createTeam(
+    input: { name: string; slug: string; description?: string; logo?: { path: string; originalFileName?: string; mimeType?: string } },
+    accessToken: string,
+  ): Promise<ExternalTeam>;
+  addMember(
+    teamId: string,
+    input: { userId?: string; email?: string; role: 'MANAGER' | 'MEMBER' },
+    accessToken: string,
+  ): Promise<unknown>;
+  removeMember(teamId: string, userId: string, accessToken: string): Promise<unknown>;
+  setMemberRole(
+    teamId: string,
+    userId: string,
+    role: 'MANAGER' | 'MEMBER',
+    accessToken: string,
+  ): Promise<unknown>;
 }
 
+/**
+ * Fiload adapter — the actual file bytes go directly between the client and
+ * Fiload's public endpoints. Our API only needs the URL builders and the
+ * upload endpoint coordinates so clients can be told where to POST.
+ */
 export interface FilesAdapter {
-  createUploadUrl(input: UploadUrlInput): Promise<UploadUrlResult>;
-  createDownloadUrl(key: string): Promise<{ url: string }>;
+  uploadEndpoint(): string;
+  uploadBase64Endpoint(): string;
+  downloadUrl(path: string): string | null;
+  previewUrl(path: string): string | null;
+  health(): Promise<boolean>;
 }
 
 export interface PushPayload {

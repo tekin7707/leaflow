@@ -64,7 +64,10 @@ const toExternalTeam = (t) => ({
 export const agentechAuthAdapter = {
   async authenticate(email, password) {
     try {
-      const data = await call('/auth/login', { method: 'POST', body: { email, password } });
+      const data = await call('/auth/login', {
+        method: 'POST',
+        body: { email, password, projectApiKey: config.agentech.apiKey },
+      });
       return {
         user: toExternalUser(data.user),
         tokens: {
@@ -108,6 +111,18 @@ export const agentechAuthAdapter = {
       stats: data.stats,
     };
   },
+
+  async logout(refreshToken, accessToken) {
+    try {
+      await call('/auth/logout', {
+        method: 'POST',
+        body: { refreshToken },
+        accessToken,
+      });
+    } catch (e) {
+      if (e.status !== 401) throw e;
+    }
+  },
 };
 
 export const agentechTeamsAdapter = {
@@ -140,5 +155,44 @@ export const agentechTeamsAdapter = {
     if (!accessToken) return [];
     const data = await call('/projects/me/users', { accessToken });
     return (data ?? []).map(toExternalUser);
+  },
+
+  async createTeam(input, accessToken) {
+    const { name, slug, description, logo } = input || {};
+    const data = await call('/teams', {
+      method: 'POST',
+      accessToken,
+      body: { name, slug, description, ...(logo ? { logo } : {}) },
+    });
+    return toExternalTeam(data);
+  },
+
+  async addMember(teamId, input, accessToken) {
+    const { userId, email, role } = input || {};
+    const data = await call(`/teams/${teamId}/members`, {
+      method: 'POST',
+      accessToken,
+      body: {
+        ...(email ? { email } : {}),
+        ...(userId ? { userId } : {}),
+        role: role === 'MANAGER' ? 'admin' : 'member',
+      },
+    });
+    return data;
+  },
+
+  async removeMember(teamId, userId, accessToken) {
+    return call(`/teams/${teamId}/members/${userId}`, {
+      method: 'DELETE',
+      accessToken,
+    });
+  },
+
+  async setMemberRole(teamId, userId, role, accessToken) {
+    return call(`/teams/${teamId}/members/${userId}`, {
+      method: 'PATCH',
+      accessToken,
+      body: { role: role === 'MANAGER' ? 'admin' : 'member' },
+    });
   },
 };

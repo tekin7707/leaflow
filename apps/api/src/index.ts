@@ -20,7 +20,10 @@ import { startReminderJob } from './jobs/reminders.js';
 
 const app = express();
 
-app.use(cors({ origin: config.webOrigin === '*' ? true : [config.webOrigin], credentials: true }));
+// In dev allow any origin (web, expo web on :8082, LAN clients);
+// in prod, restrict to WEB_ORIGIN. WEB_ORIGIN="*" forces dev behaviour explicitly.
+const corsOrigin = config.isDev || config.webOrigin === '*' ? true : [config.webOrigin];
+app.use(cors({ origin: corsOrigin, credentials: true }));
 app.use(express.json({ limit: '2mb' }));
 
 app.get('/api/health', (_req, res) => res.json({ ok: true, ts: Date.now() }));
@@ -45,4 +48,14 @@ if (process.env.NODE_ENV !== 'test') {
 
 app.listen(config.port, () => {
   log.info(`Provit API listening on http://localhost:${config.port}`);
+  log.info(
+    {
+      agentechBaseUrl: config.agentech.baseUrl,
+      agentechApiKey: config.agentech.apiKey
+        ? `${config.agentech.apiKey.slice(0, 8)}…${config.agentech.apiKey.slice(-4)}`
+        : '(empty)',
+      fiload: config.fiload.baseUrl,
+    },
+    'config loaded',
+  );
 });

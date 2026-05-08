@@ -21,6 +21,7 @@ export default function AssignmentNew() {
   const nav = useNavigate();
   const [groupId, setGroupId] = useState(params.get('groupId') || '');
   const [teamId, setTeamId] = useState('');
+  const [assigneeId, setAssigneeId] = useState('');
   const [startsAt, setStartsAt] = useState(isoLocal(tomorrow()));
   const [endsAt, setEndsAt] = useState(isoLocal(new Date(tomorrow().getTime() + 8 * 3600_000)));
   const [approverId, setApproverId] = useState('');
@@ -37,12 +38,14 @@ export default function AssignmentNew() {
         startsAt: new Date(startsAt).toISOString(),
         endsAt: new Date(endsAt).toISOString(),
         approverId: approverId || undefined,
+        assigneeId: assigneeId || undefined,
       }),
     onSuccess: () => nav('/timeline'),
     onError: (e) => setErr(e.message),
   });
 
   const team = (teamsQ.data || []).find((t) => t.id === teamId);
+  const assignee = team?.members.find((m) => m.userId === assigneeId);
 
   return (
     <div>
@@ -64,13 +67,26 @@ export default function AssignmentNew() {
           </div>
           <div className="field">
             <label>Takım</label>
-            <select value={teamId} onChange={(e) => setTeamId(e.target.value)}>
+            <select value={teamId} onChange={(e) => { setTeamId(e.target.value); setAssigneeId(''); }}>
               <option value="">— Seçin —</option>
               {(teamsQ.data || []).map((t) => (
                 <option key={t.id} value={t.id}>{t.name}</option>
               ))}
             </select>
           </div>
+          {team && (
+            <div className="field">
+              <label>Kişiye ata (opsiyonel — boşsa tüm takıma duyurulur)</label>
+              <select value={assigneeId} onChange={(e) => setAssigneeId(e.target.value)}>
+                <option value="">— Tüm takım —</option>
+                {team.members.map((m) => (
+                  <option key={m.userId} value={m.userId}>
+                    {m.user.displayName} · {m.role === 'MANAGER' ? 'Yönetici' : 'Üye'}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div className="row">
             <div className="field" style={{ flex: 1 }}>
               <label>Başlangıç</label>
@@ -112,9 +128,14 @@ export default function AssignmentNew() {
           <div className="muted" style={{ fontSize: 13, lineHeight: 1.6 }}>
             <div><strong>Grup:</strong> {(tgQ.data || []).find((g) => g.id === groupId)?.name || '—'}</div>
             <div><strong>Takım:</strong> {team?.name || '—'}</div>
+            <div><strong>Kişi:</strong> {assignee?.user.displayName ?? 'Tüm takım'}</div>
             <div><strong>Başlangıç:</strong> {startsAt}</div>
             <div><strong>Bitiş:</strong> {endsAt}</div>
             <div><strong>Onaylayıcı:</strong> {approverId ? team?.members.find((m) => m.userId === approverId)?.user.displayName : 'Varsayılan'}</div>
+          </div>
+          <div className="muted" style={{ fontSize: 11, marginTop: 12, lineHeight: 1.5 }}>
+            Kişi seçilirse tüm taskRun'lar bu kullanıcıya atanır ve mobil cihazına push bildirimi gönderilir.
+            Boş bırakılırsa tüm takıma duyurulur.
           </div>
         </Card>
       </div>

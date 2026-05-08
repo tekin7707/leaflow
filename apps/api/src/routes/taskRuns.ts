@@ -1,5 +1,5 @@
 import express from 'express';
-import { AnswerSchema, ProofSchema } from '@provit/shared/schemas';
+import { AnswerSchema, ProofSchema, TaskRunAssignSchema, TaskRunNoteSchema } from '@provit/shared/schemas';
 import { prisma } from '../db.js';
 import { adapters } from '../adapters/index.js';
 import { requireAuth } from '../auth.js';
@@ -160,6 +160,58 @@ taskRunsRoutes.get(
     });
     if (!tr) throw notFound();
     res.json(tr);
+  }),
+);
+
+taskRunsRoutes.patch(
+  '/:id/note',
+  wrap(async (req, res) => {
+    const { note } = TaskRunNoteSchema.parse(req.body);
+    const tr = await prisma.taskRun.findUnique({ where: { id: req.params.id } });
+    if (!tr) throw notFound();
+    const updated = await prisma.taskRun.update({
+      where: { id: tr.id },
+      data: { note: note ?? null },
+    });
+    res.json(updated);
+  }),
+);
+
+taskRunsRoutes.post(
+  '/:id/assign',
+  wrap(async (req, res) => {
+    const { userId } = TaskRunAssignSchema.parse(req.body);
+    const tr = await prisma.taskRun.findUnique({
+      where: { id: req.params.id },
+      include: {
+        task: true,
+        run: { include: { assignment: { include: { group: true, team: true } } } },
+      },
+    });
+    if (!tr) throw notFound();
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw notFound('User not found');
+
+    const updated = await prisma.taskRun.update({
+      where: { id: tr.id },
+      data: { assigneeId: user.id },
+    });
+
+    adapters.push.sendToUser(user.id, {
+      title: 'Yeni görev sana atandı',
+      body: `${tr.task.name} · ${tr.run.assignment.group.name}`,
+      data: {
+        kind: 'TASK_ASSIGNED',
+        screen: 'task-detail',
+        entityType: 'taskRun',
+        entityId: tr.id,
+        taskRunId: tr.id,
+        path: `/task-runs/${tr.id}`,
+        deepLink: `provit://taskRun/${tr.id}`,
+      },
+    });
+
+    res.json(updated);
   }),
 );
 

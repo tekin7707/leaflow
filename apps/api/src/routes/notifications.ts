@@ -43,3 +43,14 @@ notificationsRoutes.post(
     res.json({ ok: true });
   }),
 );
+
+notificationsRoutes.delete(
+  '/push-token',
+  wrap(async (req, res) => {
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { pushToken: null },
+    });
+    res.json({ ok: true });
+  }),
+);

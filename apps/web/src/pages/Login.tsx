@@ -7,8 +7,8 @@ export default function Login() {
   const { user, login } = useAuth();
   const nav = useNavigate();
   const loc = useLocation();
-  const [email, setEmail] = useState('admin@provit.test');
-  const [password, setPassword] = useState('demo');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [err, setErr] = useState(null);
   const [loading, setLoading] = useState(false);
 
@@ -53,11 +53,9 @@ export default function Login() {
 
         <div className="hint" style={{ marginTop: 16, padding: 12, background: 'var(--surface-alt)', borderRadius: 8, fontSize: 12, color: 'var(--mute)' }}>
           <div className="mono" style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 6, color: 'var(--mute-soft)' }}>
-            Test hesapları
+            Agentechauth
           </div>
-          <div>admin@provit.test — herhangi bir parola</div>
-          <div>ayse@provit.test — Bahçeşehir manager</div>
-          <div>mehmet@provit.test — Bahçeşehir member</div>
+          <div>Provit hesabı ile giriş yapın.</div>
         </div>
       </Card>
     </div>

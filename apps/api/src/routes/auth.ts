@@ -148,12 +148,30 @@ authRoutes.get(
   '/profile',
   requireAuth,
   wrap(async (req, res) => {
-    if (!adapters.auth.getProjectProfile) {
-      return res.json({ project: null, stats: null });
-    }
     const accessToken = await getFreshUpstreamToken(req.user.id);
     if (!accessToken) throw unauthorized('No upstream session');
     const profile = await adapters.auth.getProjectProfile(accessToken);
     res.json(profile);
+  }),
+);
+
+authRoutes.post(
+  '/logout',
+  requireAuth,
+  wrap(async (req, res) => {
+    const u = await prisma.user.findUnique({ where: { id: req.user.id } });
+    if (u?.agentechRefreshToken && adapters.auth.logout) {
+      await adapters.auth.logout(u.agentechRefreshToken, u.agentechAccessToken ?? undefined);
+    }
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: {
+        agentechAccessToken: null,
+        agentechRefreshToken: null,
+        agentechTokenExpiresAt: null,
+        pushToken: null,
+      },
+    });
+    res.json({ ok: true });
   }),
 );

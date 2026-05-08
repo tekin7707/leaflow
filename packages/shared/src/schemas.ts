@@ -82,11 +82,22 @@ export const AssignmentCreateSchema = z
     startsAt: z.string().datetime(),
     endsAt: z.string().datetime(),
     approverId: z.string().nullable().optional(),
+    assigneeId: z.string().nullable().optional(),
   })
   .refine(
     (v) => new Date(v.endsAt).getTime() > new Date(v.startsAt).getTime(),
     { message: 'endsAt must be after startsAt', path: ['endsAt'] },
   );
+
+export const TaskRunAssignSchema = z.object({
+  userId: z.string().min(1),
+});
+export type TaskRunAssignInput = z.infer<typeof TaskRunAssignSchema>;
+
+export const TaskRunNoteSchema = z.object({
+  note: z.string().max(2000).nullable(),
+});
+export type TaskRunNoteInput = z.infer<typeof TaskRunNoteSchema>;
 
 export const AssignmentQuickSchema = z.object({
   groupId: z.string().min(1),
@@ -122,12 +133,6 @@ export const ApprovalBulkDecideSchema = z.object({
   ids: z.array(z.string()).min(1),
   decision: z.enum([ApprovalDecision.APPROVED, ApprovalDecision.CHANGES_REQUESTED]),
   comment: z.string().optional(),
-});
-
-export const FileUploadUrlSchema = z.object({
-  filename: z.string().min(1),
-  mime: z.string().min(1),
-  sizeBytes: z.number().int().min(0),
 });
 
 export const PushTokenSchema = z.object({

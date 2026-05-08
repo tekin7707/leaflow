@@ -202,16 +202,25 @@ teamsRoutes.post(
   '/',
   wrap(async (req, res) => {
     const data = TeamCreateSchema.parse(req.body);
-    const t = await prisma.teamRef.create({ data });
-    res.status(201).json(t);
+    const accessToken = await requireUpstream(req.user.id);
+    const ext = await adapters.teams.createTeam(
+      { name: data.name, slug: data.code, description: req.body?.description ?? undefined },
+      accessToken,
+    );
+    const team = await mirrorTeam(ext);
+    res.status(201).json({
+      id: team.id,
+      externalId: team.externalId,
+      name: team.name,
+      code: team.code,
+    });
   }),
 );
 
 teamsRoutes.post(
   '/sync/:externalId',
   wrap(async (req, res) => {
-    if (!adapters.teams.getTeam) throw badRequest('Sync not supported');
-    const accessToken = await getFreshUpstreamToken(req.user.id);
+    const accessToken = await requireUpstream(req.user.id);
     const ext = await adapters.teams.getTeam(req.params.externalId, accessToken);
     if (!ext) throw notFound('External team not found');
     const team = await mirrorTeam(ext);
@@ -223,24 +232,33 @@ teamsRoutes.get(
   '/users/search',
   wrap(async (req, res) => {
     const q = String(req.query.q ?? '');
-    const accessToken = await getFreshUpstreamToken(req.user.id);
-    if (adapters.teams.searchUsers) {
-      const users = await adapters.teams.searchUsers(q, accessToken);
-      return res.json(users);
-    }
-    const users = await prisma.user.findMany({
-      where: q
-        ? {
-            OR: [
-              { email: { contains: q, mode: 'insensitive' } },
-              { displayName: { contains: q, mode: 'insensitive' } },
-            ],
-          }
-        : undefined,
-      take: 25,
-      orderBy: { displayName: 'asc' },
+    const accessToken = await requireUpstream(req.user.id);
+    const users = await adapters.teams.searchUsers(q, accessToken);
+    // Mirror so we can resolve ids when assigning tasks locally.
+    for (const u of users) await upsertExternalUser(u);
+    const local = await prisma.user.findMany({
+      where: { externalId: { in: users.map((u) => u.externalId) } },
     });
-    res.json(users);
+    const byExt = new Map(local.map((u) => [u.externalId, u]));
+    res.json(
+      users.map((u) => {
+        const lu = byExt.get(u.externalId);
+        return {
+          id: lu?.id,
+          externalId: u.externalId,
+          email: u.email,
+          displayName: u.displayName,
+          firstName: u.firstName,
+          lastName: u.lastName,
+          avatarUrl: u.avatarUrl,
+          role: u.role,
+        };
+      }).filter((u) =>
+        !q
+          ? true
+          : (u.email + ' ' + u.displayName).toLowerCase().includes(q.toLowerCase()),
+      ),
+    );
   }),
 );
 
@@ -249,17 +267,21 @@ teamsRoutes.post(
   wrap(async (req, res) => {
     const { userId, role } = TeamMemberAddSchema.parse(req.body);
     const team = await prisma.teamRef.findUnique({ where: { id: req.params.teamId } });
-    if (!team) throw notFound('Team not found');
+    if (!team?.externalId) throw notFound('Team not found upstream');
     const user = await prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw notFound('User not found');
 
-    const exists = await prisma.teamMember.findUnique({
-      where: { teamId_userId: { teamId: team.id, userId: user.id } },
-    });
-    if (exists) throw badRequest('Already a member');
+    const accessToken = await requireUpstream(req.user.id);
+    await adapters.teams.addMember(
+      team.externalId,
+      { userId: user.externalId, role },
+      accessToken,
+    );
 
-    const m = await prisma.teamMember.create({
-      data: { teamId: team.id, userId: user.id, role },
+    const m = await prisma.teamMember.upsert({
+      where: { teamId_userId: { teamId: team.id, userId: user.id } },
+      update: { role },
+      create: { teamId: team.id, userId: user.id, role },
       include: { user: true },
     });
     res.status(201).json(m);
@@ -269,6 +291,12 @@ teamsRoutes.post(
 teamsRoutes.delete(
   '/:teamId/members/:userId',
   wrap(async (req, res) => {
+    const team = await prisma.teamRef.findUnique({ where: { id: req.params.teamId } });
+    const user = await prisma.user.findUnique({ where: { id: req.params.userId } });
+    if (team?.externalId && user?.externalId) {
+      const accessToken = await requireUpstream(req.user.id);
+      await adapters.teams.removeMember(team.externalId, user.externalId, accessToken);
+    }
     await prisma.teamMember.delete({
       where: { teamId_userId: { teamId: req.params.teamId, userId: req.params.userId } },
     });
@@ -280,6 +308,12 @@ teamsRoutes.post(
   '/:teamId/members/:userId/role',
   wrap(async (req, res) => {
     const { role } = TeamMemberRoleSchema.parse(req.body);
+    const team = await prisma.teamRef.findUnique({ where: { id: req.params.teamId } });
+    const user = await prisma.user.findUnique({ where: { id: req.params.userId } });
+    if (team?.externalId && user?.externalId) {
+      const accessToken = await requireUpstream(req.user.id);
+      await adapters.teams.setMemberRole(team.externalId, user.externalId, role, accessToken);
+    }
     const m = await prisma.teamMember.update({
       where: { teamId_userId: { teamId: req.params.teamId, userId: req.params.userId } },
       data: { role },

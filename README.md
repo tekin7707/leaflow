@@ -79,48 +79,32 @@ API ve web servislerini `docker compose up postgres` ile başlattığın için d
 
 ---
 
-## Test hesapları
+## Hesap
 
-Mock auth herhangi bir parolayı kabul eder.
-
-| E-posta | Rol |
-|---|---|
-| `admin@provit.test` | Tüm takımlarda yönetici |
-| `ayse@provit.test` | Bahçeşehir manager |
-| `mehmet@provit.test` | Bahçeşehir member |
-| `kemal@provit.test` | Kadıköy manager |
-| `zeynep@provit.test` | Kadıköy member |
-| `ali@provit.test` | Ataşehir manager |
-| `fatma@provit.test` | Ataşehir member |
-| `elif@provit.test` | Kadıköy member |
+Login [agentechauth](spec/agentechauth.md) üzerinden gerçek Provit hesabıyla
+yapılır. Mock kullanıcı/parola yok. Project key (`AGENTECHAUTH_API_KEY`)
+`pk_` ile başlar; default değer `apps/api/.env.example` içindedir.
 
 ## Akış (spec-01)
 
-1. Takım yönetimi — `/teams`
+1. Takım yönetimi — `/teams` (agentechauth `/teams` proxy'lenir)
 2. Soru grupları + sorular — `/checklists`
 3. Görev grupları (wizard 3 adım: meta → tasks → DAG bağımlılıklar) — `/task-groups`
-4. Atama oluştur (TaskGroup × Team × tarih, opsiyonel approver) — `/assignments/new`
+4. Atama oluştur (TaskGroup × Team × tarih, opsiyonel **assignee**) — `/assignments/new`
 5. Mobilde görev gerçekleştirme — Today tab → TaskWizard (foto + checklist)
 6. Onay kuyruğu — Web `/approvals` veya Mobile Approvals tab
-7. Bildirimler — her durum geçişinde mock push + Notification kaydı
+7. Bildirimler — atama anında atanan kullanıcıya gerçek Expo push (+ in-app)
 
-## Dış servis adapter'leri (mock)
+## Dış servisler (gerçek)
 
-`spec-01.md`'deki dış servisler `packages/shared/src/adapters.ts` interface'leri olarak tanımlandı, `apps/api/src/adapters/mock/` altında implemente edildi.
+`packages/shared/src/adapters.ts` interface'lerinin uygulamaları
+`apps/api/src/adapters/http/` altındadır. Mock adapter yok.
 
-| spec-01 | Adapter | Mock davranışı |
+| Servis | Adapter | Davranış |
 |---|---|---|
-| Agentechauth | `AuthAdapter` + `TeamsAdapter` | Seed'deki kullanıcı/takımları kullanır; herhangi parola geçer. |
-| Notifit | `PushAdapter` | Console log + `Notification` tablosuna insert. |
-| Fiload | `FilesAdapter` | `apps/api/uploads/` klasörüne local PUT; `key` = uuid. |
-
-`apps/api/src/adapters/http/agentechauth.ts` gerçek Agentechauth HTTP istemcisini sağlar.
-`AUTH_MODE=agentech` + `AGENTECHAUTH_API_KEY` set edildiğinde `/api/auth/login`,
-`/api/teams`, `/api/teams/:id/members`, `/api/teams/:id/available-users`,
-`/api/auth/refresh`, `/api/auth/profile` Agentechauth servisini kullanır; aksi
-takdirde mock yollar devrededir. Login'de upstream access/refresh token'lar
-`User` üzerine yazılır; `requireAuth` korumasındaki uçlar gerektiğinde 60 sn
-buffer ile otomatik refresh eder.
+| Agentechauth (login + teams) | `agentechauth.ts` | Gerçek HTTP istek; login'de body içinde `projectApiKey`, sonrası `x-api-key` header + `Authorization: Bearer`. Refresh `User` üzerinde 60sn buffer'lı otomatik. |
+| Fiload (dosya) | `fiload.ts` | Mobile/web doğrudan `https://fiload.agentechauth.com/upld` adresine multipart POST eder; dönen `path` proof olarak Provit API'ye yazılır. |
+| Push | `expoPush.ts` | Atanan kullanıcının kayıtlı Expo push token'ına direkt `https://exp.host/--/api/v2/push/send` çağrısı + `Notification` tablosuna in-app kayıt. |
 
 ## Komutlar
 
@@ -131,7 +115,7 @@ docker compose run --rm api pnpm --filter api seed
 docker compose logs -f api web
 docker compose restart api
 docker compose down                                # durdur (volume tut)
-docker compose down -v                             # her şeyi sil
+x docker compose down -v                             # her şeyi sil
 docker compose build --no-cache api web            # Dockerfile değişti
 ```
 
@@ -173,12 +157,13 @@ provit/
 1. ✅ `docker compose up -d` postgres + api + web ayakta
 2. ✅ `docker compose run --rm api pnpm --filter api seed` hatasız
 3. ✅ http://localhost:7051/api/health → `{ ok: true }`; http://localhost:7052 Login açar
-4. ✅ `admin@provit.test` ile login → Dashboard'da bugünkü atamalar
+4. ✅ Agentechauth hesabıyla login → Dashboard'da bugünkü atamalar
 5. ✅ `/task-groups` wizard yeni grup oluşturur, dependsOn döngüsü 400 ile reddedilir
-6. ✅ `/approvals` onay verir, kuyruktan düşer, notification düşer
-7. ✅ Expo Go ile mobile bağlanır, login → Today dolu
-8. ✅ Mobil TaskWizard: foto → mock upload → checklist → tamamla → web approvals'a düşer
-9. ✅ Tüm ekranlar Yön A token'larıyla render olur
+6. ✅ `/assignments/new` "Kişiye ata" → atanan mobil cihaza Expo push düşer
+7. ✅ Push'a dokununca mobil ilgili `TaskWizard`'ı açar (cold-start dahil)
+8. ✅ `/approvals` onay verir, kuyruktan düşer, notification düşer
+9. ✅ Mobil TaskWizard: foto → Fiload upload → checklist → tamamla → web approvals'a düşer
+10. ✅ Tüm ekranlar Yön A token'larıyla render olur
 
 ## Sık sorunlar
 
@@ -188,9 +173,27 @@ provit/
 - **Docker'da hot reload çalışmıyor** → polling açık (`CHOKIDAR_USEPOLLING=true`); container restart edip dene: `docker compose restart api web`.
 - **Verileri sıfırlamak istiyorum** → `docker compose down -v && docker compose up -d && docker compose run --rm api pnpm --filter api seed`
 
+## Eksik / agentechauth tarafında ihtiyaç duyulan servisler
+
+Aşağıdaki yetenekler agentechauth'da bugün yok; Provit bunları ya kendi
+backend'inden ya da Expo Push üzerinden çözüyor. agentechauth tarafında
+karşılığı eklendiğinde aşağıdaki adapter'lar tek satırla swap edilir:
+
+- **Cross-user push (send-to-user / send-to-team)** — `/notifications/test`
+  yalnızca login olan kullanıcının kendi cihazlarına push atar (`spec/agentechauth.md` §5.5/§5.7).
+  Provit, atama anında atanan kullanıcıya push atmak için Expo'yu doğrudan
+  kullanıyor (`apps/api/src/adapters/http/expoPush.ts`).
+- **Scheduled / job-driven push** — kuyruk üzerinden bildirim üretimi yok.
+  Şimdilik Provit'in cron job'ları (`apps/api/src/jobs/reminders.ts`) tetikliyor.
+- **Per-team membership query with pagination/q filter** — `availableUsers`
+  bugün q parametresi alıyor ancak sınırlı; ileride büyük projelerde
+  upstream tarafında server-side search gerekecek.
+- **Rich logo upload helper** — Fiload upload'u + team update iki adımda
+  yapılıyor; agentechauth'un multipart team-create endpoint'i çıkarsa
+  `agentechTeamsAdapter.createTeam` doğrudan dosyayı taşır.
+
 ## Bilinçli kapsam dışı
 
-- Gerçek SSO / OIDC, gerçek S3, gerçek Expo push gönderimi (interface'ler hazır, sadece adapter swap)
 - Multi-tenant, audit log
 - E2E test (Playwright/Detox)
 - CI/CD

@@ -8,11 +8,11 @@ const hmrClientPort = process.env.VITE_HMR_CLIENT_PORT
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 5173,
+    port: 7052,
     host: true,
     strictPort: true,
     proxy: {
-      '/api': 'http://localhost:4000',
+      '/api': 'http://localhost:7051',
     },
     hmr: hmrClientPort ? { clientPort: hmrClientPort } : undefined,
   },

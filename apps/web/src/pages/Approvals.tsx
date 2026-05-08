@@ -1,6 +1,7 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api } from '../api';
+import { api, fileUrl } from '../api';
 import { Card, SectionLabel, Button, Pill, Empty, Avatar } from '../components/UI';
 
 const fmtTime = (d) => new Date(d).toLocaleString('tr-TR', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: 'short' });
@@ -108,7 +109,12 @@ export default function Approvals() {
                     {current.taskRun.task.name}
                   </h2>
                 </div>
-                <Pill tone="warn">Onay bekliyor</Pill>
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <Link to={`/task-runs/${current.taskRunId}`} style={{ fontSize: 12, color: 'var(--accent)' }}>
+                    Detay sayfası →
+                  </Link>
+                  <Pill tone="warn">Onay bekliyor</Pill>
+                </div>
               </div>
 
               <div style={{ display: 'flex', gap: 12, marginTop: 12, marginBottom: 16 }}>
@@ -119,10 +125,31 @@ export default function Approvals() {
                 </div>
               </div>
 
+              {current.taskRun.note && (
+                <>
+                  <SectionLabel>Açıklama</SectionLabel>
+                  <div style={{ whiteSpace: 'pre-wrap', fontSize: 13, color: 'var(--ink)', background: 'var(--surface-alt)', padding: 12, borderRadius: 8, marginBottom: 16 }}>
+                    {current.taskRun.note}
+                  </div>
+                </>
+              )}
+
               <SectionLabel>Foto kanıtlar ({current.taskRun.proofs.length})</SectionLabel>
               <div className="grid-3" style={{ marginBottom: 16 }}>
                 {current.taskRun.proofs.map((p) => (
-                  <div key={p.id} className="placeholder-photo">{p.filename}</div>
+                  <a
+                    key={p.id}
+                    href={fileUrl(p.key, p.mime || 'application/octet-stream')}
+                    target="_blank"
+                    rel="noreferrer"
+                    title={p.filename}
+                  >
+                    <img
+                      src={fileUrl(p.key, p.mime || 'image/jpeg')}
+                      alt={p.filename}
+                      style={{ width: '100%', aspectRatio: '1 / 1', objectFit: 'cover', borderRadius: 8, background: 'var(--surface-alt)' }}
+                    />
+                  </a>
                 ))}
                 {current.taskRun.proofs.length === 0 && <div className="muted" style={{ fontSize: 13 }}>Foto yok.</div>}
               </div>

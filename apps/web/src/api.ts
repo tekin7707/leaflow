@@ -42,3 +42,7 @@ api.get = (path) => api(path);
 api.post = (path, body) => api(path, { method: 'POST', body });
 api.put = (path, body) => api(path, { method: 'PUT', body });
 api.del = (path) => api(path, { method: 'DELETE' });
+
+/** Absolute URL for an `<img src>` to a Fiload-stored proof. */
+export const fileUrl = (path, mime = 'image/jpeg') =>
+  `${API_URL}/api/files/raw?path=${encodeURIComponent(path)}&mime=${encodeURIComponent(mime)}`;
