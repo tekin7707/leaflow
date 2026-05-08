@@ -6,8 +6,8 @@ import { T } from '../theme';
 
 export default function LoginScreen() {
   const { login } = useAuth();
-  const [email, setEmail] = useState('admin@provit.test');
-  const [password, setPassword] = useState('demo');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [err, setErr] = useState(null);
   const [busy, setBusy] = useState(false);
 
@@ -40,14 +40,13 @@ export default function LoginScreen() {
 
         {err ? <Text style={s.err}>{err}</Text> : null}
 
-        <Btn variant="accent" onPress={submit} disabled={busy} style={{ marginTop: 12 }}>
+        <Btn variant="accent" onPress={submit} disabled={busy || !email || !password} style={{ marginTop: 12 }}>
           {busy ? 'Giriş yapılıyor…' : 'Giriş yap'}
         </Btn>
 
         <View style={s.hint}>
-          <Text style={s.hintTitle}>TEST HESAPLARI</Text>
-          <Text style={s.hintLine}>admin@provit.test — herhangi bir parola</Text>
-          <Text style={s.hintLine}>mehmet@provit.test — Bahçeşehir member</Text>
+          <Text style={s.hintTitle}>AGENTECHAUTH</Text>
+          <Text style={s.hintLine}>Provit hesabı ile giriş yapın.</Text>
         </View>
       </Card>
     </KeyboardAvoidingView>

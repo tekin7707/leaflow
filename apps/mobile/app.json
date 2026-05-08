@@ -5,21 +5,65 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "scheme": "provit",
     "splash": {
       "backgroundColor": "#FAF8F4",
       "resizeMode": "contain"
     },
-    "assetBundlePatterns": ["**/*"],
-    "ios": { "supportsTablet": true },
-    "android": { "adaptiveIcon": { "backgroundColor": "#FAF8F4" } },
-    "web": { "favicon": null },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.provit.mobile",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.provit.mobile",
+      "adaptiveIcon": {
+        "backgroundColor": "#FAF8F4"
+      },
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "web": {},
     "plugins": [
-      ["expo-camera", { "cameraPermission": "Görev kanıtı için fotoğraf çekmenize izin verin." }],
-      ["expo-image-picker", { "photosPermission": "Görev kanıtı için galeriden seçim yapmanıza izin verin." }],
-      "expo-notifications"
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Görev kanıtı için fotoğraf çekmenize izin verin."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Görev kanıtı için galeriden seçim yapmanıza izin verin."
+        }
+      ],
+      "expo-notifications",
+      "expo-secure-store"
     ],
     "extra": {
-      "apiUrl": "http://localhost:7051"
+      "apiUrl": "http://192.168.1.28:7051",
+      "agentechBaseUrl": "https://api.agentechauth.com/api",
+      "agentechApiKey": "pk_865b8622f8644c1de83d546e99a924dd",
+      "filoadBaseUrl": "https://fiload.agentechauth.com",
+      "eas": {
+        "projectId": "0d170969-7096-49d6-a17c-73a2c45de85b"
+      }
+    },
+    "owner": "tekin7707",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/0d170969-7096-49d6-a17c-73a2c45de85b"
     }
   }
 }

@@ -1,4 +1,5 @@
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DefaultTheme } from '@react-navigation/native';
+import { navigationRef } from './notifications';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Text } from 'react-native';
@@ -55,10 +56,18 @@ export function RootNavigation() {
   if (loading) return null;
   return (
     <NavigationContainer
+      ref={navigationRef}
       theme={{
+        ...DefaultTheme,
         dark: false,
         colors: {
-          primary: T.accent, background: T.bg, card: T.surface, text: T.ink, border: T.line, notification: T.accent,
+          ...DefaultTheme.colors,
+          primary: T.accent,
+          background: T.bg,
+          card: T.surface,
+          text: T.ink,
+          border: T.line,
+          notification: T.accent,
         },
       }}
     >

@@ -4,7 +4,8 @@ import {
 } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
-import { api, uploadBinary } from '../api';
+import { api, filoadUpload, filoadDataUri } from '../api';
+import { useAuth } from '../auth';
 import { Card, Btn, Pill, StatusPill, SectionLabel } from '../components';
 import { T } from '../theme';
 
@@ -18,8 +19,10 @@ export default function TaskWizardScreen({ route, navigation }: any) {
   });
 
   const tr = trQ.data;
+  const { user } = useAuth();
   const [step, setStep] = useState<'overview' | 'photos' | 'checklist' | 'done'>('overview');
   const [answers, setAnswers] = useState<Record<string, { value: string; note?: string }>>({});
+  const [note, setNote] = useState<string>('');
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
@@ -28,6 +31,7 @@ export default function TaskWizardScreen({ route, navigation }: any) {
       for (const a of tr.answers) init[a.questionId] = { value: a.value, note: a.note ?? undefined };
       setAnswers(init);
     }
+    if (tr) setNote(tr.note ?? '');
   }, [tr?.id]);
 
   const start = useMutation({
@@ -41,6 +45,14 @@ export default function TaskWizardScreen({ route, navigation }: any) {
   const saveAnswer = useMutation({
     mutationFn: (input: { questionId: string; value: string; note?: string }) =>
       api.post(`/api/task-runs/${taskRunId}/answer`, input),
+  });
+
+  const saveNote = useMutation({
+    mutationFn: (value: string) =>
+      api(`/api/task-runs/${taskRunId}/note`, {
+        method: 'PATCH',
+        body: { note: value || null },
+      }),
   });
 
   const complete = useMutation({
@@ -70,12 +82,10 @@ export default function TaskWizardScreen({ route, navigation }: any) {
       const mime = asset.mimeType || 'image/jpeg';
       const sizeBytes = asset.fileSize || 0;
 
-      const presigned = await api.post('/api/files/upload-url', { filename, mime, sizeBytes });
-      const blob = await fetch(asset.uri).then((x) => x.blob());
-      await uploadBinary(presigned.uploadUrl, blob, presigned.headers);
+      const uploaded = await filoadUpload(asset.uri, filename, mime);
       await api.post(`/api/task-runs/${taskRunId}/proof`, {
-        key: presigned.key,
-        filename,
+        key: uploaded.path,
+        filename: uploaded.filename,
         mime,
         sizeBytes,
       });
@@ -100,6 +110,11 @@ export default function TaskWizardScreen({ route, navigation }: any) {
   const questions = tr.task.questionGroup?.questions || [];
   const requiredQs = questions.filter((q: any) => q.required);
   const allAnswered = requiredQs.every((q: any) => answers[q.id]?.value);
+  // Read-only when the viewer isn't the assignee, or the run is past the
+  // working stage. Managers viewing someone else's task land here too.
+  const isAssignee = !!user?.id && tr.assigneeId === user.id;
+  const isFinal = ['AWAITING_APPROVAL', 'APPROVED', 'DONE', 'REJECTED'].includes(tr.status);
+  const readOnly = !isAssignee || isFinal;
   const canComplete = proofs.length >= minFiles && allAnswered && tr.status !== 'BLOCKED' && tr.status !== 'AWAITING_APPROVAL';
 
   return (
@@ -122,27 +137,48 @@ export default function TaskWizardScreen({ route, navigation }: any) {
           </View>
         )}
 
-        {(tr.status === 'PENDING' || tr.status === 'REJECTED') && (
+        {!readOnly && (tr.status === 'PENDING' || tr.status === 'REJECTED') && (
           <Btn variant="accent" style={{ marginTop: 12 }} onPress={() => start.mutate()}>
             {start.isPending ? 'Başlatılıyor…' : 'Görevi başlat'}
           </Btn>
         )}
+        {readOnly && (
+          <View style={s.warn}>
+            <Text style={s.warnText}>
+              {isAssignee ? 'Bu görev artık düzenlenemez.' : 'Sadece görüntüleme — bu görev sana atanmamış.'}
+            </Text>
+          </View>
+        )}
+      </Card>
+
+      <SectionLabel style={{ marginTop: 20 }}>Açıklama</SectionLabel>
+      <Card>
+        <TextInput
+          style={s.note}
+          value={note}
+          onChangeText={setNote}
+          onBlur={() => { if (!readOnly && (tr.note ?? '') !== note) saveNote.mutate(note); }}
+          placeholder={readOnly ? 'Açıklama girilmedi.' : 'Bu görev için serbest açıklama (opsiyonel)…'}
+          multiline
+          editable={!readOnly}
+        />
       </Card>
 
       <SectionLabel style={{ marginTop: 20 }}>Foto kanıtlar ({proofs.length}/{minFiles})</SectionLabel>
       <Card>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
           {proofs.map((p: any) => (
-            <View key={p.id} style={s.thumb}>
-              <Text style={{ fontSize: 9, color: T.muteSoft, padding: 4, textAlign: 'center' }}>
-                {p.filename}
-              </Text>
-            </View>
+            <ProofThumb key={p.id} proof={p} />
           ))}
         </View>
-        <Btn variant="ghost" style={{ marginTop: 12 }} onPress={pickAndUpload} disabled={busy || tr.status === 'BLOCKED'}>
-          {busy ? 'Yükleniyor…' : '+ Foto ekle'}
-        </Btn>
+        {!readOnly && (
+          <Btn variant="ghost" style={{ marginTop: 12 }} onPress={pickAndUpload} disabled={busy || tr.status === 'BLOCKED'}>
+            {busy ? 'Yükleniyor…' : '+ Foto ekle'}
+          </Btn>
+        )}
+        {readOnly && proofs.length === 0 && (
+          <Text style={{ color: T.muteSoft, fontSize: 12, marginTop: 8 }}>Foto eklenmedi.</Text>
+        )}
       </Card>
 
       {questions.length > 0 && (
@@ -158,7 +194,9 @@ export default function TaskWizardScreen({ route, navigation }: any) {
                   question={q}
                   value={answers[q.id]?.value}
                   note={answers[q.id]?.note}
+                  disabled={readOnly}
                   onChange={(value, note) => {
+                    if (readOnly) return;
                     setAnswers((a) => ({ ...a, [q.id]: { value, note } }));
                     if (value) saveAnswer.mutate({ questionId: q.id, value, note });
                   }}
@@ -169,15 +207,17 @@ export default function TaskWizardScreen({ route, navigation }: any) {
         </>
       )}
 
-      <Btn
-        variant="accent"
-        style={{ marginTop: 20 }}
-        disabled={!canComplete || complete.isPending}
-        onPress={() => complete.mutate()}
-      >
-        {complete.isPending ? 'Gönderiliyor…' : 'Görevi tamamla'}
-      </Btn>
-      {!canComplete && tr.status !== 'BLOCKED' && tr.status !== 'AWAITING_APPROVAL' && (
+      {!readOnly && (
+        <Btn
+          variant="accent"
+          style={{ marginTop: 20 }}
+          disabled={!canComplete || complete.isPending}
+          onPress={() => complete.mutate()}
+        >
+          {complete.isPending ? 'Gönderiliyor…' : 'Görevi tamamla'}
+        </Btn>
+      )}
+      {!readOnly && !canComplete && tr.status !== 'BLOCKED' && tr.status !== 'AWAITING_APPROVAL' && (
         <Text style={s.hint}>
           {proofs.length < minFiles ? `${minFiles - proofs.length} foto daha gerekli. ` : ''}
           {!allAnswered ? 'Tüm zorunlu soruları cevapla.' : ''}
@@ -187,10 +227,34 @@ export default function TaskWizardScreen({ route, navigation }: any) {
   );
 }
 
-function QuestionInput({ question, value, note, onChange }: {
+function ProofThumb({ proof }: { proof: any }) {
+  const [uri, setUri] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    if (!proof?.key || !(proof?.mime ?? '').startsWith('image/')) return;
+    filoadDataUri(proof.key, proof.mime || 'image/jpeg')
+      .then((u) => { if (alive) setUri(u); })
+      .catch(() => { if (alive) setUri(null); });
+    return () => { alive = false; };
+  }, [proof?.key]);
+
+  if (uri) {
+    return <Image source={{ uri }} style={s.thumb} />;
+  }
+  return (
+    <View style={s.thumb}>
+      <Text style={{ fontSize: 9, color: T.muteSoft, padding: 4, textAlign: 'center' }}>
+        {proof.filename}
+      </Text>
+    </View>
+  );
+}
+
+function QuestionInput({ question, value, note, onChange, disabled }: {
   question: any;
   value?: string;
   note?: string;
+  disabled?: boolean;
   onChange: (value: string, note?: string) => void;
 }) {
   if (question.answerType === 'YES_NO' || question.answerType === 'YES_NO_NA') {
@@ -203,7 +267,8 @@ function QuestionInput({ question, value, note, onChange }: {
           <TouchableOpacity
             key={v}
             onPress={() => onChange(v, note)}
-            style={[qs.opt, value === v && qs.optActive]}
+            disabled={disabled}
+            style={[qs.opt, value === v && qs.optActive, disabled && { opacity: 0.6 }]}
           >
             <Text style={[qs.optText, value === v && qs.optTextActive]}>{l}</Text>
           </TouchableOpacity>
@@ -219,6 +284,7 @@ function QuestionInput({ question, value, note, onChange }: {
         value={value ?? ''}
         onChangeText={(t) => onChange(t)}
         placeholder="Sayı"
+        editable={!disabled}
       />
     );
   }
@@ -229,6 +295,7 @@ function QuestionInput({ question, value, note, onChange }: {
       onChangeText={(t) => onChange(t)}
       placeholder="Yanıt"
       multiline
+      editable={!disabled}
     />
   );
 }
@@ -251,4 +318,5 @@ const s = StyleSheet.create({
   q: { paddingVertical: 10, borderTopColor: T.line, borderTopWidth: 1, gap: 8 },
   qText: { fontSize: 13, color: T.ink },
   hint: { fontSize: 11, color: T.mute, textAlign: 'center', marginTop: 8 },
+  note: { borderColor: T.line, borderWidth: 1, borderRadius: 8, padding: 10, fontSize: 13, color: T.ink, minHeight: 80, textAlignVertical: 'top' },
 });

@@ -1,16 +1,16 @@
 import { createContext, useContext, useEffect, useState } from 'react';
-import { api, tokenStore } from './api';
+import { api, session } from './api';
 
-const AuthCtx = createContext(null);
+const AuthCtx = createContext<any>(null);
 
-export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+export function AuthProvider({ children }: { children: any }) {
+  const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const tok = await tokenStore.get();
+      const tok = await session.getProvitToken();
       if (!tok) {
         setLoading(false);
         return;
@@ -19,7 +19,7 @@ export function AuthProvider({ children }) {
         const me = await api.get('/api/auth/me');
         if (!cancelled) setUser(me);
       } catch {
-        await tokenStore.clear();
+        await session.clear();
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -27,19 +27,27 @@ export function AuthProvider({ children }) {
     return () => { cancelled = true; };
   }, []);
 
-  const login = async (email, password) => {
+  const login = async (email: string, password: string) => {
     const r = await api.post('/api/auth/login', { email, password });
-    await tokenStore.set(r.token);
+    await session.setProvitToken(r.token);
+    if (r.upstream) {
+      await session.setUpstream({
+        accessToken: r.upstream.accessToken,
+        refreshToken: r.upstream.refreshToken,
+        expiresIn: r.upstream.expiresIn,
+      });
+    }
     setUser(r.user);
     return r.user;
   };
 
   const logout = async () => {
-    await tokenStore.clear();
+    try { await api.post('/api/auth/logout'); } catch { /* best-effort */ }
+    await session.clear();
     setUser(null);
   };
 
-  const isManager = user?.memberships?.some((m) => m.role === 'MANAGER') ?? false;
+  const isManager = user?.memberships?.some((m: any) => m.role === 'MANAGER') ?? false;
 
   return (
     <AuthCtx.Provider value={{ user, isManager, loading, login, logout }}>
