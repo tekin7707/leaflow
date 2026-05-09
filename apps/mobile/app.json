@@ -4,9 +4,11 @@
     "slug": "provit",
     "version": "0.1.0",
     "orientation": "portrait",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "scheme": "provit",
     "splash": {
+      "image": "./assets/splash-icon.png",
       "backgroundColor": "#FAF8F4",
       "resizeMode": "contain"
     },
@@ -23,6 +25,7 @@
     "android": {
       "package": "com.provit.mobile",
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FAF8F4"
       },
       "permissions": [
@@ -32,7 +35,9 @@
         "android.permission.RECORD_AUDIO"
       ]
     },
-    "web": {},
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
     "plugins": [
       [
         "expo-camera",
@@ -50,7 +55,7 @@
       "expo-secure-store"
     ],
     "extra": {
-      "apiUrl": "http://192.168.1.28:7051",
+      "apiUrl": "http://192.168.1.61:7051",
       "agentechBaseUrl": "https://api.agentechauth.com/api",
       "agentechApiKey": "pk_865b8622f8644c1de83d546e99a924dd",
       "filoadBaseUrl": "https://fiload.agentechauth.com",

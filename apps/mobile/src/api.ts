@@ -20,8 +20,9 @@ const storage = Platform.OS === 'web'
     };
 
 const extra = Constants.expoConfig?.extra ?? {};
+const nativeApiUrl = extra.apiUrl ?? 'http://localhost:7051';
 
-export const API_URL: string = extra.apiUrl ?? 'http://localhost:7051';
+export const API_URL: string = Platform.OS === 'web' ? 'http://localhost:7051' : nativeApiUrl;
 export const AGENTECH_BASE_URL: string = extra.agentechBaseUrl ?? 'https://api.agentechauth.com/api';
 export const AGENTECH_API_KEY: string = extra.agentechApiKey ?? '';
 export const FILOAD_BASE_URL: string = extra.filoadBaseUrl ?? 'https://fiload.agentechauth.com';
