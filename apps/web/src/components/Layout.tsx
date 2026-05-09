@@ -5,6 +5,7 @@ import { useAuth } from '../auth';
 import { api } from '../api';
 import { Avatar, Button } from './UI';
 import { QuickTaskModal } from './QuickTaskModal';
+import { BrandLogo } from './BrandLogo';
 
 const NAV = [
   { to: '/', label: 'Pano', end: true },
@@ -34,7 +35,9 @@ export function Layout() {
   return (
     <div className="app">
       <aside className="app__sidebar">
-        <div className="app__brand">Provit</div>
+        <div className="app__brand">
+          <BrandLogo />
+        </div>
         <Button variant="accent" size="sm" onClick={() => setQuickOpen(true)} style={{ margin: '0 12px 12px' }}>
           + Hızlı görev
         </Button>

@@ -71,8 +71,23 @@ input:focus, textarea:focus, select:focus { border-color: var(--accent); }
   display: flex; flex-direction: column; gap: 4px;
 }
 .app__brand {
-  font-family: var(--font-serif); font-size: 28px; line-height: 1; padding: 4px 8px 16px;
-  font-style: italic;
+  padding: 2px 8px 16px;
+}
+.brand-logo {
+  display: block;
+  object-fit: contain;
+}
+.brand-logo--wordmark {
+  width: 144px;
+  height: auto;
+}
+.brand-logo--vertical {
+  width: 252px;
+  max-width: 100%;
+  height: auto;
+}
+.login-brand {
+  margin: 0 auto 12px;
 }
 .app__nav-link {
   padding: 9px 12px; border-radius: 8px; font-size: 13px; font-weight: 500;

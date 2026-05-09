@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { useAuth } from '../auth';
 import { Card, Button } from '../components/UI';
+import { BrandLogo } from '../components/BrandLogo';
 
 export default function Login() {
   const { user, login } = useAuth();
@@ -31,9 +32,9 @@ export default function Login() {
   return (
     <div className="login-page">
       <Card style={{ width: 'min(420px, 100%)', padding: 32 }}>
-        <h1 className="h-serif" style={{ fontStyle: 'italic', fontSize: 40, margin: '0 0 4px' }}>Provit</h1>
+        <BrandLogo variant="vertical" className="login-brand" />
         <div className="muted" style={{ marginBottom: 24, fontSize: 13 }}>
-          Görev — atama — ispat — onay
+          Where work flows naturally
         </div>
 
         <form onSubmit={submit}>
@@ -55,7 +56,7 @@ export default function Login() {
           <div className="mono" style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 6, color: 'var(--mute-soft)' }}>
             Agentechauth
           </div>
-          <div>Provit hesabı ile giriş yapın.</div>
+          <div>Leaflow hesabı ile giriş yapın.</div>
         </div>
       </Card>
     </div>

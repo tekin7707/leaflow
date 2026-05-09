@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { View, Text, TextInput, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
 import { useAuth } from '../auth';
 import { Btn, Card } from '../components';
+import { BrandLogo } from '../BrandLogo';
 import { T } from '../theme';
 
 export default function LoginScreen() {
@@ -29,8 +30,8 @@ export default function LoginScreen() {
       style={s.page}
     >
       <Card style={s.card}>
-        <Text style={s.title}>Provit</Text>
-        <Text style={s.subtitle}>Görev — atama — ispat — onay</Text>
+        <BrandLogo style={s.logo} />
+        <Text style={s.subtitle}>Where work flows naturally</Text>
 
         <Text style={s.label}>E-posta</Text>
         <TextInput style={s.input} autoCapitalize="none" keyboardType="email-address" value={email} onChangeText={setEmail} />
@@ -46,7 +47,7 @@ export default function LoginScreen() {
 
         <View style={s.hint}>
           <Text style={s.hintTitle}>AGENTECHAUTH</Text>
-          <Text style={s.hintLine}>Provit hesabı ile giriş yapın.</Text>
+          <Text style={s.hintLine}>Leaflow hesabı ile giriş yapın.</Text>
         </View>
       </Card>
     </KeyboardAvoidingView>
@@ -56,7 +57,7 @@ export default function LoginScreen() {
 const s = StyleSheet.create({
   page: { flex: 1, backgroundColor: T.bg, justifyContent: 'center', padding: 20 },
   card: { padding: 24 },
-  title: { fontSize: 36, fontStyle: 'italic', marginBottom: 4, color: T.ink },
+  logo: { width: 230, height: 50, alignSelf: 'flex-start', marginBottom: 8 },
   subtitle: { color: T.mute, marginBottom: 24 },
   label: { fontSize: 10, color: T.muteSoft, textTransform: 'uppercase', letterSpacing: 1.2, marginTop: 12, marginBottom: 4 },
   input: { borderColor: T.line, borderWidth: 1, borderRadius: T.radiusSm, padding: 10, fontSize: 14, color: T.ink },

@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../auth';
 import { api } from '../api';
 import { Card, Btn, Pill, Avatar, SectionLabel } from '../components';
+import { BrandLogo } from '../BrandLogo';
 import { T } from '../theme';
 
 export default function ProfileScreen({ navigation }: any) {
@@ -20,6 +21,7 @@ export default function ProfileScreen({ navigation }: any) {
   return (
     <ScrollView style={s.page} contentContainerStyle={{ padding: 16 }}>
       <Card style={{ alignItems: 'center', paddingVertical: 24 }}>
+        <BrandLogo style={s.logo} />
         <Avatar name={user?.displayName ?? '?'} size={72} />
         <Text style={s.name}>{user?.displayName}</Text>
         <Text style={s.email}>{user?.email}</Text>
@@ -73,6 +75,7 @@ export default function ProfileScreen({ navigation }: any) {
 
 const s = StyleSheet.create({
   page: { flex: 1, backgroundColor: T.bg },
+  logo: { width: 172, height: 38, marginBottom: 18 },
   name: { fontSize: 22, fontWeight: '700', color: T.ink, marginTop: 12 },
   email: { fontSize: 12, color: T.mute, marginTop: 2 },
   kpi: { flex: 1, padding: 12, alignItems: 'flex-start' },
