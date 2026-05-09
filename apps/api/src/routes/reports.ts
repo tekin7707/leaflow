@@ -21,16 +21,19 @@ reportsRoutes.get(
       ? new Date(String(req.query.from))
       : new Date(to.getTime() - 13 * 24 * 60 * 60 * 1000);
 
+    const userId = req.user.id;
     const teamIds = req.query.teamId
       ? [String(req.query.teamId)]
       : req.user.memberships.map((m) => m.teamId);
 
     const runs = await prisma.taskRun.findMany({
       where: {
-        run: {
-          date: { gte: startOfDay(from), lte: to },
-          assignment: { teamId: { in: teamIds } },
-        },
+        run: { date: { gte: startOfDay(from), lte: to } },
+        OR: [
+          { run: { assignment: { teamId: { in: teamIds } } } },
+          { run: { assignment: { createdById: userId } } },
+          { assigneeId: userId },
+        ],
       },
       include: {
         run: { include: { assignment: { include: { team: true } } } },

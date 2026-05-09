@@ -14,6 +14,7 @@ import { approvalsRoutes } from './routes/approvals.js';
 import { filesRoutes } from './routes/files.js';
 import { reportsRoutes } from './routes/reports.js';
 import { notificationsRoutes } from './routes/notifications.js';
+import { quickTaskRoutes } from './routes/quickTask.js';
 
 import { startRecurrenceJob } from './jobs/recurrence.js';
 import { startReminderJob } from './jobs/reminders.js';
@@ -38,6 +39,7 @@ app.use('/api/approvals', approvalsRoutes);
 app.use('/api/files', filesRoutes);
 app.use('/api/reports', reportsRoutes);
 app.use('/api/notifications', notificationsRoutes);
+app.use('/api/quick-task', quickTaskRoutes);
 
 app.use(errorHandler);
 

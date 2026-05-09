@@ -72,6 +72,7 @@ assignmentsRoutes.post(
         startsAt: new Date(data.startsAt),
         endsAt: new Date(data.endsAt),
         approverId: data.approverId ?? null,
+        createdById: req.user.id,
       },
     });
 
@@ -172,7 +173,7 @@ assignmentsRoutes.post(
     endsAt.setDate(endsAt.getDate() + 1);
 
     const a = await prisma.assignment.create({
-      data: { groupId: grp.id, teamId, startsAt, endsAt },
+      data: { groupId: grp.id, teamId, startsAt, endsAt, createdById: req.user.id },
     });
     await materializeRuns(a.id);
     res.status(201).json(a);

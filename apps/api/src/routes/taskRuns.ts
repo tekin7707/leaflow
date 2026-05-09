@@ -29,12 +29,16 @@ taskRunsRoutes.get(
 
     const runs = await prisma.taskRun.findMany({
       where: {
-        OR: [{ assigneeId: userId }, { assigneeId: null }],
         status: { in: ['PENDING', 'IN_PROGRESS', 'AWAITING_APPROVAL', 'BLOCKED', 'REJECTED'] },
-        run: {
-          date: { gte: startOfDay(today), lte: endOfDay(today) },
-          assignment: { teamId: { in: teamIds } },
-        },
+        run: { date: { gte: startOfDay(today), lte: endOfDay(today) } },
+        OR: [
+          // Explicitly mine
+          { assigneeId: userId },
+          // I created the assignment
+          { run: { assignment: { createdById: userId } } },
+          // Unassigned task in one of my teams
+          { AND: [{ assigneeId: null }, { run: { assignment: { teamId: { in: teamIds } } } }] },
+        ],
       },
       include: {
         task: { include: { questionGroup: true } },
@@ -101,40 +105,50 @@ taskRunsRoutes.get(
   wrap(async (req, res) => {
     const userId = req.user.id;
     const teamIds = req.user.memberships.map((m) => m.teamId);
-    const scope = String(req.query.scope ?? 'mine');
+    const scope = String(req.query.scope ?? 'team');
 
-    const where = {};
-    if (scope === 'mine') where.assigneeId = userId;
-    else if (scope === 'team') where.run = { assignment: { teamId: { in: teamIds } } };
-    // 'all' — managers only; just return everything they belong to
-    else if (scope === 'all') where.run = { assignment: { teamId: { in: teamIds } } };
+    // Build the user-relevance OR clauses. Used universally so that creators
+    // always see what they assigned, assignees always see their work, and
+    // team members see their team's load — even if scopes overlap.
+    const visibility = {
+      OR: [
+        { assigneeId: userId },
+        { run: { assignment: { teamId: { in: teamIds } } } },
+        { run: { assignment: { createdById: userId } } },
+      ],
+    };
 
-    if (req.query.teamId) {
-      where.run = { ...(where.run ?? {}), assignment: { teamId: String(req.query.teamId) } };
+    const where = { ...visibility };
+    if (scope === 'mine') {
+      where.OR = [
+        { assigneeId: userId },
+        { run: { assignment: { createdById: userId } } },
+      ];
+    } else if (scope === 'created') {
+      where.OR = [{ run: { assignment: { createdById: userId } } }];
     }
-    if (req.query.status) {
-      where.status = { in: String(req.query.status).split(',') };
-    }
+
+    const runFilter = {};
+    if (req.query.teamId) runFilter.assignment = { teamId: String(req.query.teamId) };
     if (req.query.groupId) {
-      where.run = {
-        ...(where.run ?? {}),
-        assignment: { ...(where.run?.assignment ?? {}), groupId: String(req.query.groupId) },
-      };
+      runFilter.assignment = { ...(runFilter.assignment ?? {}), groupId: String(req.query.groupId) };
     }
     if (req.query.from || req.query.to) {
       const dateRange = {};
       if (req.query.from) dateRange.gte = new Date(String(req.query.from));
       if (req.query.to) dateRange.lte = new Date(String(req.query.to));
-      where.run = { ...(where.run ?? {}), date: dateRange };
+      runFilter.date = dateRange;
     }
-    if (req.query.q) {
-      where.task = { name: { contains: String(req.query.q), mode: 'insensitive' } };
-    }
+    if (Object.keys(runFilter).length) where.run = runFilter;
+
+    if (req.query.status) where.status = { in: String(req.query.status).split(',') };
+    if (req.query.q) where.task = { name: { contains: String(req.query.q), mode: 'insensitive' } };
 
     const runs = await prisma.taskRun.findMany({
       where,
       include: {
         task: true,
+        assignee: true,
         run: { include: { assignment: { include: { group: true, team: true } } } },
       },
       orderBy: [{ run: { date: 'desc' } }, { task: { order: 'asc' } }],
@@ -295,8 +309,12 @@ taskRunsRoutes.post(
       },
     });
     if (!tr) throw notFound();
-    if (tr.proofs.length < (tr.task.minFiles ?? 0)) {
-      throw badRequest(`Min ${tr.task.minFiles} dosya gerekli`);
+    const minFiles = Math.max(
+      tr.task.minFiles ?? 0,
+      tr.run.assignment.group.minFiles ?? 0,
+    );
+    if (tr.proofs.length < minFiles) {
+      throw badRequest(`En az ${minFiles} dosya eklemelisin (eklenen: ${tr.proofs.length})`);
     }
     if (tr.task.questionGroup) {
       const required = tr.task.questionGroup.questions.filter((q) => q.required);
@@ -319,6 +337,29 @@ taskRunsRoutes.post(
       },
     });
 
+    // Recipients for the completion fan-out:
+    //  - the assignment creator (whoever requested the work) — always
+    //  - on approval-required tasks: the named approver, else all team managers
+    // Skip the actor themselves to avoid self-pinging.
+    const actorId = req.user.id;
+    const completionTargets = new Set<string>();
+    const creatorId = tr.run.assignment.createdById;
+    if (creatorId && creatorId !== actorId) completionTargets.add(creatorId);
+
+    const completionPayload = (kind: string, title: string) => ({
+      title,
+      body: `${tr.task.name} · ${tr.run.assignment.team.name}`,
+      data: {
+        kind,
+        screen: 'task-detail',
+        entityType: 'taskRun',
+        entityId: tr.id,
+        taskRunId: tr.id,
+        path: `/task-runs/${tr.id}`,
+        deepLink: `provit://taskRun/${tr.id}`,
+      },
+    });
+
     if (requiresApproval) {
       await prisma.approval.create({
         data: {
@@ -326,18 +367,27 @@ taskRunsRoutes.post(
           approverId: tr.run.assignment.approverId ?? null,
         },
       });
-      // notify managers of the team
-      const managers = await prisma.teamMember.findMany({
-        where: { teamId: tr.run.assignment.teamId, role: 'MANAGER' },
-      });
-      for (const mgr of managers) {
-        adapters.push.sendToUser(mgr.userId, {
-          title: 'Onay bekliyor',
-          body: `${tr.task.name}`,
-          data: { kind: 'APPROVAL_REQUESTED', taskRunId: tr.id },
+
+      const approverId = tr.run.assignment.approverId;
+      if (approverId) {
+        if (approverId !== actorId) completionTargets.add(approverId);
+      } else {
+        const managers = await prisma.teamMember.findMany({
+          where: { teamId: tr.run.assignment.teamId, role: 'MANAGER' },
         });
+        for (const mgr of managers) {
+          if (mgr.userId !== actorId) completionTargets.add(mgr.userId);
+        }
+      }
+
+      for (const userId of completionTargets) {
+        adapters.push.sendToUser(userId, completionPayload('APPROVAL_REQUESTED', 'Onay bekliyor'));
       }
     } else {
+      // No approval needed → tell the creator the task is done.
+      for (const userId of completionTargets) {
+        adapters.push.sendToUser(userId, completionPayload('TASK_COMPLETED', 'Görev tamamlandı'));
+      }
       const ids = await unblockDependents(tr.id);
       for (const id of ids) {
         const sib = await prisma.taskRun.findUnique({
@@ -352,7 +402,15 @@ taskRunsRoutes.post(
           adapters.push.sendToUser(m.userId, {
             title: 'Görev açıldı',
             body: `${sib.task.name}`,
-            data: { kind: 'TASK_UNBLOCKED', taskRunId: sib.id },
+            data: {
+              kind: 'TASK_UNBLOCKED',
+              screen: 'task-detail',
+              entityType: 'taskRun',
+              entityId: sib.id,
+              taskRunId: sib.id,
+              path: `/task-runs/${sib.id}`,
+              deepLink: `provit://taskRun/${sib.id}`,
+            },
           });
         }
       }

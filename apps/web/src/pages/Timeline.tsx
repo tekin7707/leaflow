@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../api';
 import { Card, SectionLabel, Pill, StatusPill, Button, Empty } from '../components/UI';
@@ -9,14 +9,23 @@ const COLUMNS = [
   ['PENDING', 'Bekliyor'],
   ['IN_PROGRESS', 'Devam ediyor'],
   ['AWAITING_APPROVAL', 'Onay bekliyor'],
-  ['DONE', 'Tamamlandı'],
+  ['REJECTED', 'Düzeltme'],
+  // Both DONE (no-approval flow) and APPROVED (approval flow) end up here
+  // so completed work is always visible.
+  ['DONE,APPROVED', 'Tamamlandı'],
 ];
 
 const fmtDay = (d) => new Date(d).toLocaleDateString('tr-TR', { weekday: 'short', day: '2-digit', month: 'short' });
 
 export default function Timeline() {
+  const nav = useNavigate();
   const [view, setView] = useState('kanban');
   const [scope, setScope] = useState('team');
+  const SCOPES: Array<[string, string]> = [
+    ['mine', 'Bana / Yarattığım'],
+    ['team', 'Takım'],
+    ['created', 'Yarattığım'],
+  ];
 
   const runsQ = useQuery({
     queryKey: ['pool', scope],
@@ -35,8 +44,7 @@ export default function Timeline() {
         </div>
         <div className="row">
           <select value={scope} onChange={(e) => setScope(e.target.value)}>
-            <option value="mine">Bana</option>
-            <option value="team">Takım</option>
+            {SCOPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
           <Button variant={view === 'kanban' ? 'primary' : 'ghost'} size="sm" onClick={() => setView('kanban')}>Kanban</Button>
           <Button variant={view === 'gantt' ? 'primary' : 'ghost'} size="sm" onClick={() => setView('gantt')}>Gantt</Button>
@@ -48,7 +56,8 @@ export default function Timeline() {
       {view === 'kanban' && runs.length > 0 && (
         <div className="kanban">
           {COLUMNS.map(([s, label]) => {
-            const items = runs.filter((r) => r.status === s);
+            const statuses = s.split(',');
+            const items = runs.filter((r) => statuses.includes(r.status));
             return (
               <div key={s} className="kanban__col">
                 <div className="kanban__head">
@@ -91,7 +100,11 @@ export default function Timeline() {
             </thead>
             <tbody>
               {runs.map((tr) => (
-                <tr key={tr.id}>
+                <tr
+                  key={tr.id}
+                  onClick={() => nav(`/task-runs/${tr.id}`)}
+                  style={{ cursor: 'pointer' }}
+                >
                   <td>{tr.task.name}</td>
                   <td className="muted">{tr.run.assignment.group.name}</td>
                   <td>{tr.run.assignment.team.name}</td>

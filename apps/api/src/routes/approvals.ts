@@ -12,17 +12,34 @@ approvalsRoutes.use(requireAuth);
 approvalsRoutes.get(
   '/queue',
   wrap(async (req, res) => {
+    const userId = req.user.id;
     const teamIds = req.user.memberships
       .filter((m) => m.role === 'MANAGER')
       .map((m) => m.teamId);
+
+    // Manager of the team OR named approver OR assignment creator can decide.
     const where = {
       decision: 'PENDING',
-      taskRun: {
-        run: { assignment: { teamId: { in: teamIds } } },
-      },
+      OR: [
+        { taskRun: { run: { assignment: { teamId: { in: teamIds } } } } },
+        { taskRun: { run: { assignment: { approverId: userId } } } },
+        { taskRun: { run: { assignment: { createdById: userId } } } },
+      ],
     };
     if (req.query.teamId) {
-      where.taskRun.run.assignment.teamId = String(req.query.teamId);
+      where.OR = where.OR.map((branch) => ({
+        ...branch,
+        taskRun: {
+          ...branch.taskRun,
+          run: {
+            ...branch.taskRun.run,
+            assignment: {
+              ...branch.taskRun.run.assignment,
+              teamId: String(req.query.teamId),
+            },
+          },
+        },
+      }));
     }
     if (req.query.overdue === '1') {
       where.createdAt = { lt: new Date(Date.now() - 24 * 60 * 60 * 1000) };
@@ -51,7 +68,15 @@ approvalsRoutes.get(
 async function applyDecision(approvalId, userId, decision, comment) {
   const ap = await prisma.approval.findUnique({
     where: { id: approvalId },
-    include: { taskRun: { include: { task: true, assignee: true } } },
+    include: {
+      taskRun: {
+        include: {
+          task: true,
+          assignee: true,
+          run: { include: { assignment: true } },
+        },
+      },
+    },
   });
   if (!ap) throw notFound('Approval not found');
 
@@ -75,11 +100,28 @@ async function applyDecision(approvalId, userId, decision, comment) {
     await unblockDependents(ap.taskRunId);
   }
 
-  if (ap.taskRun.assigneeId) {
-    adapters.push.sendToUser(ap.taskRun.assigneeId, {
+  // Fan out to assignee + assignment creator (skip the actor).
+  const targets = new Set<string>();
+  if (ap.taskRun.assigneeId && ap.taskRun.assigneeId !== userId) {
+    targets.add(ap.taskRun.assigneeId);
+  }
+  const creatorId = ap.taskRun.run.assignment.createdById;
+  if (creatorId && creatorId !== userId) targets.add(creatorId);
+
+  for (const uid of targets) {
+    adapters.push.sendToUser(uid, {
       title: decision === 'APPROVED' ? 'Onaylandı' : 'Düzeltme istendi',
       body: ap.taskRun.task.name,
-      data: { kind: 'APPROVAL_RESULT', taskRunId: ap.taskRunId, decision },
+      data: {
+        kind: 'APPROVAL_RESULT',
+        decision,
+        screen: 'task-detail',
+        entityType: 'taskRun',
+        entityId: ap.taskRunId,
+        taskRunId: ap.taskRunId,
+        path: `/task-runs/${ap.taskRunId}`,
+        deepLink: `provit://taskRun/${ap.taskRunId}`,
+      },
     });
   }
 }

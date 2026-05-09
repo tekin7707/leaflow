@@ -108,6 +108,25 @@ export const AssignmentQuickSchema = z.object({
   when: z.string().min(1),
 });
 
+/**
+ * One-shot create-task-and-assign payload. Auto-creates a TaskGroup with a
+ * single Task inside it and (optionally) an Assignment + per-user push.
+ */
+export const QuickTaskSchema = z.object({
+  name: z.string().min(1).max(120),
+  description: z.string().optional(),
+  requiresApproval: z.boolean().default(false),
+  minFiles: z.number().int().min(0).default(0),
+  estimatedMinutes: z.number().int().min(1).default(15),
+  recurrence: z.string().nullable().optional(),
+  // Optional immediate assignment.
+  teamId: z.string().min(1).optional(),
+  assigneeId: z.string().min(1).optional(),
+  // 'NOW' | 'TODAY' | 'TOMORROW' | ISO datetime
+  when: z.string().optional(),
+});
+export type QuickTaskInput = z.infer<typeof QuickTaskSchema>;
+
 export const AnswerSchema = z.object({
   questionId: z.string().min(1),
   value: z.string().min(1),

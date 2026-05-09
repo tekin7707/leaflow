@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { View, Text, FlatList, RefreshControl, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, FlatList, RefreshControl, StyleSheet, TouchableOpacity, ActionSheetIOS, Platform, Alert } from 'react-native';
 import { api } from '../api';
 import { useAuth } from '../auth';
 import { Card, Pill, StatusPill, SectionLabel } from '../components';
@@ -48,11 +48,11 @@ export default function TodayScreen({ navigation }) {
             </View>
 
             <View style={{ flexDirection: 'row', gap: 8, marginVertical: 12 }}>
-              <TouchableOpacity onPress={() => navigation.navigate('QuickAssign')} style={[s.fab]}>
-                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>+ Hızlı atama</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('QuickTask')} style={[s.fab]}>
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>+ Hızlı görev</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => navigation.navigate('Notifications')} style={[s.fab, { backgroundColor: T.surface, borderColor: T.line, borderWidth: 1 }]}>
-                <Text style={{ color: T.ink, fontWeight: '700', fontSize: 13 }}>🔔 Bildirimler</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('QuickAssign')} style={[s.fab, { backgroundColor: T.surface, borderColor: T.line, borderWidth: 1 }]}>
+                <Text style={{ color: T.ink, fontWeight: '700', fontSize: 13 }}>Mevcuda ata</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -90,6 +90,32 @@ export default function TodayScreen({ navigation }) {
           ) : null
         }
       />
+
+      <TouchableOpacity
+        style={s.floatingFab}
+        onPress={() => {
+          if (Platform.OS === 'ios') {
+            ActionSheetIOS.showActionSheetWithOptions(
+              {
+                options: ['İptal', 'Hızlı görev oluştur', 'Mevcut göreve ata'],
+                cancelButtonIndex: 0,
+              },
+              (i) => {
+                if (i === 1) navigation.navigate('QuickTask');
+                if (i === 2) navigation.navigate('QuickAssign');
+              },
+            );
+          } else {
+            Alert.alert('Hızlı eylem', undefined, [
+              { text: 'İptal', style: 'cancel' },
+              { text: 'Hızlı görev oluştur', onPress: () => navigation.navigate('QuickTask') },
+              { text: 'Mevcut göreve ata', onPress: () => navigation.navigate('QuickAssign') },
+            ]);
+          }
+        }}
+      >
+        <Text style={s.floatingFabText}>＋</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -102,6 +128,13 @@ const s = StyleSheet.create({
   kpiLabel: { fontSize: 9, color: T.muteSoft, fontWeight: '700', letterSpacing: 1.2, textTransform: 'uppercase' },
   kpiValue: { fontSize: 28, fontStyle: 'italic', color: T.ink, marginTop: 4 },
   fab: { backgroundColor: T.ink, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 8 },
+  floatingFab: {
+    position: 'absolute', right: 20, bottom: 24,
+    width: 56, height: 56, borderRadius: 28,
+    backgroundColor: T.accent, alignItems: 'center', justifyContent: 'center',
+    shadowColor: '#000', shadowOpacity: 0.18, shadowRadius: 6, shadowOffset: { width: 0, height: 3 }, elevation: 6,
+  },
+  floatingFabText: { color: '#fff', fontSize: 28, fontWeight: '600', lineHeight: 32 },
   groupName: { fontSize: 16, fontWeight: '700', color: T.ink },
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderTopColor: T.line, borderTopWidth: StyleSheet.hairlineWidth, gap: 8 },
   taskName: { fontSize: 14, fontWeight: '600', color: T.ink },

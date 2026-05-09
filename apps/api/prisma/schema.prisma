@@ -120,16 +120,17 @@ enum AssignmentStatus {
 }
 
 model Assignment {
-  id         String           @id @default(cuid())
-  group      TaskGroup        @relation(fields: [groupId], references: [id])
-  groupId    String
-  team       TeamRef          @relation(fields: [teamId], references: [id])
-  teamId     String
-  startsAt   DateTime
-  endsAt     DateTime
-  approverId String?
-  status     AssignmentStatus @default(SCHEDULED)
-  createdAt  DateTime         @default(now())
+  id          String           @id @default(cuid())
+  group       TaskGroup        @relation(fields: [groupId], references: [id])
+  groupId     String
+  team        TeamRef          @relation(fields: [teamId], references: [id])
+  teamId      String
+  startsAt    DateTime
+  endsAt      DateTime
+  approverId  String?
+  createdById String?
+  status      AssignmentStatus @default(SCHEDULED)
+  createdAt   DateTime         @default(now())
 
   runs TaskGroupRun[]
 }

@@ -1,12 +1,15 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { api } from '../api';
-import { Card, SectionLabel, StatusPill, Pill, Empty } from '../components/UI';
+import { Card, SectionLabel, StatusPill, Pill, Empty, Button } from '../components/UI';
+import { QuickTaskModal } from '../components/QuickTaskModal';
 
 const fmtTime = (d) => new Date(d).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
 const fmtDate = (d) => new Date(d).toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' });
 
 export default function Dashboard() {
+  const [quickOpen, setQuickOpen] = useState(false);
   const todayQ = useQuery({
     queryKey: ['runs', 'today'],
     queryFn: () => api.get('/api/task-runs/mine/today'),
@@ -38,7 +41,10 @@ export default function Dashboard() {
             {fmtDate(new Date())}
           </h1>
         </div>
+        <Button variant="accent" onClick={() => setQuickOpen(true)}>+ Hızlı görev</Button>
       </div>
+
+      <QuickTaskModal open={quickOpen} onClose={() => setQuickOpen(false)} />
 
       <div className="grid-4" style={{ marginBottom: 24 }}>
         <Card>

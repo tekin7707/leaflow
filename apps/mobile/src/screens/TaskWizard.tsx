@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, Image, TextInput,
+  View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, Image, TextInput, Modal, Dimensions, ActionSheetIOS, Platform,
 } from 'react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
@@ -24,6 +24,7 @@ export default function TaskWizardScreen({ route, navigation }: any) {
   const [answers, setAnswers] = useState<Record<string, { value: string; note?: string }>>({});
   const [note, setNote] = useState<string>('');
   const [busy, setBusy] = useState(false);
+  const [zoom, setZoom] = useState<{ uri: string; filename?: string } | null>(null);
 
   useEffect(() => {
     if (tr?.answers) {
@@ -68,32 +69,82 @@ export default function TaskWizardScreen({ route, navigation }: any) {
     onError: (e: any) => Alert.alert('Hata', e.message),
   });
 
-  const pickAndUpload = async () => {
+  const uploadAsset = async (asset: ImagePicker.ImagePickerAsset) => {
+    const filename = asset.fileName || `photo-${Date.now()}.jpg`;
+    const mime = asset.mimeType || 'image/jpeg';
+    const sizeBytes = asset.fileSize || 0;
+
+    const uploaded = await filoadUpload(asset.uri, filename, mime);
+    await api.post(`/api/task-runs/${taskRunId}/proof`, {
+      key: uploaded.path,
+      filename: uploaded.filename,
+      mime,
+      sizeBytes,
+    });
+    qc.invalidateQueries({ queryKey: ['taskRun', taskRunId] });
+  };
+
+  const fromLibrary = async () => {
     setBusy(true);
     try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert('İzin gerekli', 'Galeri erişimi reddedildi.');
+        return;
+      }
       const r = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         quality: 0.7,
       });
       if (r.canceled) return;
-      const asset = r.assets[0];
-
-      const filename = asset.fileName || `photo-${Date.now()}.jpg`;
-      const mime = asset.mimeType || 'image/jpeg';
-      const sizeBytes = asset.fileSize || 0;
-
-      const uploaded = await filoadUpload(asset.uri, filename, mime);
-      await api.post(`/api/task-runs/${taskRunId}/proof`, {
-        key: uploaded.path,
-        filename: uploaded.filename,
-        mime,
-        sizeBytes,
-      });
-      qc.invalidateQueries({ queryKey: ['taskRun', taskRunId] });
+      await uploadAsset(r.assets[0]);
     } catch (e: any) {
       Alert.alert('Yükleme hatası', e.message);
     } finally {
       setBusy(false);
+    }
+  };
+
+  const fromCamera = async () => {
+    setBusy(true);
+    try {
+      const perm = await ImagePicker.requestCameraPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert('İzin gerekli', 'Kamera erişimi reddedildi.');
+        return;
+      }
+      const r = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.7,
+        allowsEditing: false,
+      });
+      if (r.canceled) return;
+      await uploadAsset(r.assets[0]);
+    } catch (e: any) {
+      Alert.alert('Yükleme hatası', e.message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const pickAndUpload = () => {
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['İptal', 'Fotoğraf çek', 'Galeriden seç'],
+          cancelButtonIndex: 0,
+        },
+        (i) => {
+          if (i === 1) fromCamera();
+          if (i === 2) fromLibrary();
+        },
+      );
+    } else {
+      Alert.alert('Foto ekle', undefined, [
+        { text: 'İptal', style: 'cancel' },
+        { text: 'Fotoğraf çek', onPress: fromCamera },
+        { text: 'Galeriden seç', onPress: fromLibrary },
+      ]);
     }
   };
 
@@ -106,7 +157,10 @@ export default function TaskWizardScreen({ route, navigation }: any) {
   }
 
   const proofs = tr.proofs || [];
-  const minFiles = tr.task.minFiles || 0;
+  const minFiles = Math.max(
+    tr.task.minFiles || 0,
+    tr.run?.assignment?.group?.minFiles || 0,
+  );
   const questions = tr.task.questionGroup?.questions || [];
   const requiredQs = questions.filter((q: any) => q.required);
   const allAnswered = requiredQs.every((q: any) => answers[q.id]?.value);
@@ -168,7 +222,11 @@ export default function TaskWizardScreen({ route, navigation }: any) {
       <Card>
         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
           {proofs.map((p: any) => (
-            <ProofThumb key={p.id} proof={p} />
+            <ProofThumb
+              key={p.id}
+              proof={p}
+              onPress={(uri) => setZoom({ uri, filename: p.filename })}
+            />
           ))}
         </View>
         {!readOnly && (
@@ -223,11 +281,23 @@ export default function TaskWizardScreen({ route, navigation }: any) {
           {!allAnswered ? 'Tüm zorunlu soruları cevapla.' : ''}
         </Text>
       )}
+
+      <Modal visible={!!zoom} transparent animationType="fade" onRequestClose={() => setZoom(null)}>
+        <TouchableOpacity activeOpacity={1} style={s.zoomBackdrop} onPress={() => setZoom(null)}>
+          {zoom && (
+            <>
+              <Image source={{ uri: zoom.uri }} style={s.zoomImage} resizeMode="contain" />
+              {zoom.filename ? <Text style={s.zoomCaption}>{zoom.filename}</Text> : null}
+              <Text style={s.zoomHint}>Kapatmak için dokunun</Text>
+            </>
+          )}
+        </TouchableOpacity>
+      </Modal>
     </ScrollView>
   );
 }
 
-function ProofThumb({ proof }: { proof: any }) {
+function ProofThumb({ proof, onPress }: { proof: any; onPress?: (uri: string) => void }) {
   const [uri, setUri] = useState<string | null>(null);
   useEffect(() => {
     let alive = true;
@@ -239,7 +309,11 @@ function ProofThumb({ proof }: { proof: any }) {
   }, [proof?.key]);
 
   if (uri) {
-    return <Image source={{ uri }} style={s.thumb} />;
+    return (
+      <TouchableOpacity onPress={() => onPress?.(uri)} activeOpacity={0.85}>
+        <Image source={{ uri }} style={s.thumb} />
+      </TouchableOpacity>
+    );
   }
   return (
     <View style={s.thumb}>
@@ -319,4 +393,8 @@ const s = StyleSheet.create({
   qText: { fontSize: 13, color: T.ink },
   hint: { fontSize: 11, color: T.mute, textAlign: 'center', marginTop: 8 },
   note: { borderColor: T.line, borderWidth: 1, borderRadius: 8, padding: 10, fontSize: 13, color: T.ink, minHeight: 80, textAlignVertical: 'top' },
+  zoomBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.92)', alignItems: 'center', justifyContent: 'center', padding: 16 },
+  zoomImage: { width: Dimensions.get('window').width, height: Dimensions.get('window').height * 0.75 },
+  zoomCaption: { color: '#fff', fontSize: 12, marginTop: 12, textAlign: 'center' },
+  zoomHint: { color: 'rgba(255,255,255,0.6)', fontSize: 11, marginTop: 8 },
 });
