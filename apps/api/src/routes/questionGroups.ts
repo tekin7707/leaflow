@@ -2,7 +2,7 @@ import express from 'express';
 import {
   QuestionGroupCreateSchema,
   QuestionGroupQuestionsSchema,
-} from '@provit/shared/schemas';
+} from '@leaflow/shared/schemas';
 import { prisma } from '../db.js';
 import { requireAuth } from '../auth.js';
 import { wrap, notFound } from '../errors.js';

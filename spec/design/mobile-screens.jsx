@@ -46,7 +46,7 @@ window.Phone = Phone;
 window.MobLogin = () => (
   <Phone>
     <div style={{ padding: '60px 28px 28px', display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ fontFamily: T.fontSerif, fontSize: 32, fontStyle: 'italic', marginBottom: 60 }}>Provit</div>
+      <div style={{ fontFamily: T.fontSerif, fontSize: 32, fontStyle: 'italic', marginBottom: 60 }}>Leaflow</div>
       <div style={{ flex: 1 }}>
         <div style={{ fontFamily: T.fontSerif, fontSize: 38, lineHeight: 1.05, letterSpacing: -1, marginBottom: 12 }}>
           Hoş geldin.
@@ -55,7 +55,7 @@ window.MobLogin = () => (
           Bugünkü görevlerine ve takım akışına eriş.
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 16 }}>
-          <Field label="E-posta" value="ayse@provit.test" />
+          <Field label="E-posta" value="ayse@leaflow.test" />
           <Field label="Parola" value="••••••••" />
         </div>
         <div style={{
@@ -64,7 +64,7 @@ window.MobLogin = () => (
         }}>Giriş yap →</div>
       </div>
       <div style={{ textAlign: 'center', fontSize: 11, color: T.muteSoft, fontFamily: T.fontMono }}>
-        v0.1 · provit.test
+        v0.1 · leaflow.test
       </div>
     </div>
   </Phone>
@@ -317,7 +317,7 @@ window.MobProfile = () => (
       <div style={{ alignItems: 'center', display: 'flex', flexDirection: 'column', marginBottom: 24 }}>
         <UI.Avatar name="Ayşe Kaya" size={80} />
         <div style={{ fontFamily: T.fontSerif, fontSize: 28, letterSpacing: -0.6, marginTop: 14 }}>Ayşe Kaya</div>
-        <div style={{ fontSize: 12, color: T.mute, fontFamily: T.fontMono }}>ayse@provit.test</div>
+        <div style={{ fontSize: 12, color: T.mute, fontFamily: T.fontMono }}>ayse@leaflow.test</div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 24 }}>

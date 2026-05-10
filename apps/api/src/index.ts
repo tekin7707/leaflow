@@ -50,7 +50,7 @@ if (process.env.NODE_ENV !== 'test') {
 }
 
 app.listen(config.port, () => {
-  log.info(`Provit API listening on http://localhost:${config.port}`);
+  log.info(`Leaflow API listening on http://localhost:${config.port}`);
   log.info(
     {
       agentechBaseUrl: config.agentech.baseUrl,

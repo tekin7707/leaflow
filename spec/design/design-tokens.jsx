@@ -1,5 +1,5 @@
 // design-tokens.jsx
-// Provit Yön A — sıcak krem + zeytin yeşili.
+// Leaflow Yön A — sıcak krem + zeytin yeşili.
 // Tüm ekranlar bu tokenları kullanır; CLAUDE_CODE_SPEC.md ile birebir aynı.
 
 const T = {

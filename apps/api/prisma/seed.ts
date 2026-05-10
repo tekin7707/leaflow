@@ -4,7 +4,7 @@ const { PrismaClient } = pkg;
 const prisma = new PrismaClient();
 
 /**
- * Seed = clean slate. Provit-internal entities (question/task groups,
+ * Seed = clean slate. Leaflow-internal entities (question/task groups,
  * assignments, runs) come from the UI. Identity (users, teams) comes from
  * agentechauth on demand. There is no mock data.
  *
@@ -29,7 +29,7 @@ async function reset() {
 
 async function seed() {
   await reset();
-  console.log('DB wiped. Provit starts empty — create content via the UI.');
+  console.log('DB wiped. Leaflow starts empty — create content via the UI.');
   console.log('Login uses agentechauth; no test accounts are seeded.');
 }
 

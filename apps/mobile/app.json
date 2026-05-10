@@ -1,12 +1,12 @@
 {
   "expo": {
     "name": "Leaflow",
-    "slug": "provit",
+    "slug": "leaflow",
     "version": "0.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "scheme": "provit",
+    "scheme": "leaflow",
     "splash": {
       "image": "./assets/splash-icon.png",
       "backgroundColor": "#FAF8F4",
@@ -17,13 +17,13 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.provit.mobile",
+      "bundleIdentifier": "com.leaflow.mobile",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
-      "package": "com.provit.mobile",
+      "package": "com.leaflow.mobile",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#FAF8F4"

@@ -14,7 +14,7 @@ Notifications.setNotificationHandler({
 
 const APP_ID = (Constants.expoConfig as any)?.android?.package
   ?? (Constants.expoConfig as any)?.ios?.bundleIdentifier
-  ?? 'com.provit.mobile';
+  ?? 'com.leaflow.mobile';
 
 const resolvedProjectId = EAS_PROJECT_ID
   ?? (Constants.expoConfig as any)?.extra?.eas?.projectId
@@ -23,7 +23,7 @@ const resolvedProjectId = EAS_PROJECT_ID
 /**
  * Asks for notification permission, fetches the Expo push token, and registers
  * the device with both agentechauth (per spec §5.2) and our own API (so the
- * Provit backend can send pushes when assigning tasks).
+ * Leaflow backend can send pushes when assigning tasks).
  */
 export async function registerPush(): Promise<string | null> {
   try {
@@ -53,11 +53,11 @@ export async function registerPush(): Promise<string | null> {
     const token = tokenData?.data;
     if (!token) return null;
 
-    // Provit API — used by our backend for direct Expo sends
+    // Leaflow API — used by our backend for direct Expo sends
     try {
       await api.post('/api/notifications/push-token', { token });
     } catch (err) {
-      console.warn('push:provit-register error', err);
+      console.warn('push:leaflow-register error', err);
     }
 
     // agentechauth — keep their inventory in sync per spec §5.2

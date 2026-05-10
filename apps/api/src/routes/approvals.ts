@@ -1,5 +1,5 @@
 import express from 'express';
-import { ApprovalDecideSchema, ApprovalBulkDecideSchema } from '@provit/shared/schemas';
+import { ApprovalDecideSchema, ApprovalBulkDecideSchema } from '@leaflow/shared/schemas';
 import { prisma } from '../db.js';
 import { adapters } from '../adapters/index.js';
 import { requireAuth } from '../auth.js';
@@ -120,7 +120,7 @@ async function applyDecision(approvalId, userId, decision, comment) {
         entityId: ap.taskRunId,
         taskRunId: ap.taskRunId,
         path: `/task-runs/${ap.taskRunId}`,
-        deepLink: `provit://taskRun/${ap.taskRunId}`,
+        deepLink: `leaflow://taskRun/${ap.taskRunId}`,
       },
     });
   }

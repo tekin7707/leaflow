@@ -1,5 +1,5 @@
 import express from 'express';
-import { AssignmentCreateSchema, AssignmentQuickSchema } from '@provit/shared/schemas';
+import { AssignmentCreateSchema, AssignmentQuickSchema } from '@leaflow/shared/schemas';
 import { z } from 'zod';
 import { prisma } from '../db.js';
 import { adapters } from '../adapters/index.js';
@@ -73,7 +73,7 @@ async function notifyAssignmentCreated({
           taskRunId: first.id,
           assignmentId: assignment.id,
           path: `/task-runs/${first.id}`,
-          deepLink: `provit://taskRun/${first.id}`,
+          deepLink: `leaflow://taskRun/${first.id}`,
         },
       });
     }

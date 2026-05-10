@@ -1,4 +1,4 @@
-# Provit
+# Leaflow
 
 Görev oluştur → ata → gerçekleştir → ispat → onay sistemi. 3 uygulamadan oluşan bir monorepo:
 
@@ -7,7 +7,7 @@ Görev oluştur → ata → gerçekleştir → ispat → onay sistemi. 3 uygulam
 - **`apps/mobile`** — Expo SDK 51 + React Native (TypeScript)
 - **`packages/shared`** — zod şemaları, enum'lar, dış servis adapter interface'leri
 
-Tasarım yön A — sıcak krem zemin + zeytin yeşili aksan. Görsel referans: [spec/design/Provit Design.html](spec/design/Provit%20Design.html). Detaylı build spec: [spec/design/CLAUDE_CODE_SPEC.md](spec/design/CLAUDE_CODE_SPEC.md).
+Tasarım yön A — sıcak krem zemin + zeytin yeşili aksan. Görsel referans: [spec/design/Leaflow Design.html](spec/design/Leaflow%20Design.html). Detaylı build spec: [spec/design/CLAUDE_CODE_SPEC.md](spec/design/CLAUDE_CODE_SPEC.md).
 
 ---
 
@@ -29,7 +29,7 @@ docker compose run --rm api pnpm --filter api seed
 # Hepsi ayakta:
 #   API:  http://localhost:7051  (health: /api/health)
 #   Web:  http://localhost:7052
-#   DB:   localhost:7050  (provit/provit)
+#   DB:   localhost:7050  (leaflow/leaflow)
 
 # Logları izle
 docker compose logs -f api web
@@ -81,7 +81,7 @@ API ve web servislerini `docker compose up postgres` ile başlattığın için d
 
 ## Hesap
 
-Login [agentechauth](spec/agentechauth.md) üzerinden gerçek Provit hesabıyla
+Login [agentechauth](spec/agentechauth.md) üzerinden gerçek Leaflow hesabıyla
 yapılır. Mock kullanıcı/parola yok. Project key (`AGENTECHAUTH_API_KEY`)
 `pk_` ile başlar; default değer `apps/api/.env.example` içindedir.
 
@@ -103,7 +103,7 @@ yapılır. Mock kullanıcı/parola yok. Project key (`AGENTECHAUTH_API_KEY`)
 | Servis | Adapter | Davranış |
 |---|---|---|
 | Agentechauth (login + teams) | `agentechauth.ts` | Gerçek HTTP istek; login'de body içinde `projectApiKey`, sonrası `x-api-key` header + `Authorization: Bearer`. Refresh `User` üzerinde 60sn buffer'lı otomatik. |
-| Fiload (dosya) | `fiload.ts` | Mobile/web doğrudan `https://fiload.agentechauth.com/upld` adresine multipart POST eder; dönen `path` proof olarak Provit API'ye yazılır. |
+| Fiload (dosya) | `fiload.ts` | Mobile/web doğrudan `https://fiload.agentechauth.com/upld` adresine multipart POST eder; dönen `path` proof olarak Leaflow API'ye yazılır. |
 | Push | `expoPush.ts` | Atanan kullanıcının kayıtlı Expo push token'ına direkt `https://exp.host/--/api/v2/push/send` çağrısı + `Notification` tablosuna in-app kayıt. |
 
 ## Komutlar
@@ -133,7 +133,7 @@ pnpm --filter mobile start
 ## Klasör yapısı
 
 ```
-provit/
+leaflow/
 ├─ docker-compose.yml          # postgres + deps + api + web
 ├─ Dockerfile.dev              # ortak dev imajı (node:20 + pnpm)
 ├─ pnpm-workspace.yaml
@@ -175,16 +175,16 @@ provit/
 
 ## Eksik / agentechauth tarafında ihtiyaç duyulan servisler
 
-Aşağıdaki yetenekler agentechauth'da bugün yok; Provit bunları ya kendi
+Aşağıdaki yetenekler agentechauth'da bugün yok; Leaflow bunları ya kendi
 backend'inden ya da Expo Push üzerinden çözüyor. agentechauth tarafında
 karşılığı eklendiğinde aşağıdaki adapter'lar tek satırla swap edilir:
 
 - **Cross-user push (send-to-user / send-to-team)** — `/notifications/test`
   yalnızca login olan kullanıcının kendi cihazlarına push atar (`spec/agentechauth.md` §5.5/§5.7).
-  Provit, atama anında atanan kullanıcıya push atmak için Expo'yu doğrudan
+  Leaflow, atama anında atanan kullanıcıya push atmak için Expo'yu doğrudan
   kullanıyor (`apps/api/src/adapters/http/expoPush.ts`).
 - **Scheduled / job-driven push** — kuyruk üzerinden bildirim üretimi yok.
-  Şimdilik Provit'in cron job'ları (`apps/api/src/jobs/reminders.ts`) tetikliyor.
+  Şimdilik Leaflow'un cron job'ları (`apps/api/src/jobs/reminders.ts`) tetikliyor.
 - **Per-team membership query with pagination/q filter** — `availableUsers`
   bugün q parametresi alıyor ancak sınırlı; ileride büyük projelerde
   upstream tarafında server-side search gerekecek.
@@ -200,4 +200,4 @@ karşılığı eklendiğinde aşağıdaki adapter'lar tek satırla swap edilir:
 
 ## Lisans
 
-Internal — Flo / Provit.
+Internal — Flo / Leaflow.

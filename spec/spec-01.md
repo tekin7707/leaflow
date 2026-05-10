@@ -1,6 +1,6 @@
-## Provit bir task yönetim uygulamasıdır.
+## Leaflow bir task yönetim uygulamasıdır.
 
-Bir görev oluşturma - atama - gerçekleştirme - ispat - onay sistemi olacak.  Proje ismi provit.
+Bir görev oluşturma - atama - gerçekleştirme - ispat - onay sistemi olacak. Proje ismi Leaflow.
 
 3 temel uygulamadan oluşur
 
@@ -48,5 +48,5 @@ Burada daha çok akış yönetilecek.
 3 farklı klasör olacak diye düşünüyorum. 3'ü de paralel olarak geliştirilecek. Mock data ve mock servislerle çalış. dış servisler için gereksinimleri belir.
 
 Claude Design bir çalışma yaptı. Aşağıda ilgili çalışma var.
-Fetch this design file, read its readme, and implement the relevant aspects of the design. https://api.anthropic.com/v1/design/h/VMz1M2zesvpLGwNw5ZKU2Q?open_file=Provit+Design.html
-Implement: Provit Design.html
+Fetch this design file, read its readme, and implement the relevant aspects of the design. https://api.anthropic.com/v1/design/h/VMz1M2zesvpLGwNw5ZKU2Q?open_file=Leaflow+Design.html
+Implement: Leaflow Design.html

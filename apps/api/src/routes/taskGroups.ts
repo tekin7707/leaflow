@@ -2,7 +2,7 @@ import express from 'express';
 import { v4 as uuid } from 'uuid';
 import {
   TaskGroupCreateSchema, TaskGroupUpdateSchema, TaskReorderSchema,
-} from '@provit/shared/schemas';
+} from '@leaflow/shared/schemas';
 import { prisma } from '../db.js';
 import { requireAuth } from '../auth.js';
 import { wrap, notFound, badRequest } from '../errors.js';

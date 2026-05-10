@@ -1,5 +1,5 @@
 import express from 'express';
-import { AnswerSchema, ProofSchema, TaskRunAssignSchema, TaskRunNoteSchema } from '@provit/shared/schemas';
+import { AnswerSchema, ProofSchema, TaskRunAssignSchema, TaskRunNoteSchema } from '@leaflow/shared/schemas';
 import { prisma } from '../db.js';
 import { adapters } from '../adapters/index.js';
 import { requireAuth } from '../auth.js';
@@ -252,7 +252,7 @@ taskRunsRoutes.post(
         entityId: tr.id,
         taskRunId: tr.id,
         path: `/task-runs/${tr.id}`,
-        deepLink: `provit://taskRun/${tr.id}`,
+        deepLink: `leaflow://taskRun/${tr.id}`,
       },
     });
 
@@ -400,7 +400,7 @@ taskRunsRoutes.post(
         entityId: tr.id,
         taskRunId: tr.id,
         path: `/task-runs/${tr.id}`,
-        deepLink: `provit://taskRun/${tr.id}`,
+        deepLink: `leaflow://taskRun/${tr.id}`,
       },
     });
 
@@ -453,7 +453,7 @@ taskRunsRoutes.post(
               entityId: sib.id,
               taskRunId: sib.id,
               path: `/task-runs/${sib.id}`,
-              deepLink: `provit://taskRun/${sib.id}`,
+              deepLink: `leaflow://taskRun/${sib.id}`,
             },
           });
         }

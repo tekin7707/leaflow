@@ -1,6 +1,6 @@
 const API_URL = import.meta.env.VITE_API_URL || '';
 
-const TOKEN_KEY = 'provit.token';
+const TOKEN_KEY = 'leaflow.token';
 
 export const tokenStore = {
   get: () => localStorage.getItem(TOKEN_KEY),

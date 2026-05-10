@@ -1,18 +1,18 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: provit-postgres
+    container_name: leaflow-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: provit
-      POSTGRES_PASSWORD: provit
-      POSTGRES_DB: provit
+      POSTGRES_USER: leaflow
+      POSTGRES_PASSWORD: leaflow
+      POSTGRES_DB: leaflow
     ports:
       - "7050:5432"
     volumes:
-      - provit_pg_data:/var/lib/postgresql/data
+      - leaflow_pg_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U provit -d provit"]
+      test: ["CMD-SHELL", "pg_isready -U leaflow -d leaflow"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -24,12 +24,12 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    container_name: provit-deps
+    container_name: leaflow-deps
     working_dir: /app
     command: >
       sh -c "pnpm install && pnpm --filter api db:push"
     environment:
-      DATABASE_URL: postgresql://provit:provit@postgres:5432/provit
+      DATABASE_URL: postgresql://leaflow:leaflow@postgres:5432/leaflow
     volumes:
       - .:/app
       - root_node_modules:/app/node_modules
@@ -45,11 +45,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    container_name: provit-api
+    container_name: leaflow-api
     working_dir: /app
     command: pnpm --filter api dev
     environment:
-      DATABASE_URL: postgresql://provit:provit@postgres:5432/provit
+      DATABASE_URL: postgresql://leaflow:leaflow@postgres:5432/leaflow
       JWT_SECRET: dev-secret-change-me
       PORT: "4000"
       WEB_ORIGIN: http://localhost:7052
@@ -78,7 +78,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    container_name: provit-web
+    container_name: leaflow-web
     working_dir: /app
     command: pnpm --filter web dev
     environment:
@@ -97,7 +97,7 @@ services:
         condition: service_completed_successfully
 
 volumes:
-  provit_pg_data:
+  leaflow_pg_data:
   root_node_modules:
   api_node_modules:
   web_node_modules:

@@ -1,5 +1,5 @@
 import express from 'express';
-import { QuickTaskSchema } from '@provit/shared/schemas';
+import { QuickTaskSchema } from '@leaflow/shared/schemas';
 import { prisma } from '../db.js';
 import { requireAuth } from '../auth.js';
 import { wrap } from '../errors.js';

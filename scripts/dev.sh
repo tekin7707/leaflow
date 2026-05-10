@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Provit local dev orchestrator.
+# Leaflow local dev orchestrator.
 #
 # Akış:
 #   1) Postgres + API + Web container'larını rebuild edip ayağa kaldırır.
@@ -88,7 +88,7 @@ green "
 ========================================
   API:    http://localhost:7051
   Web:    http://localhost:7052
-  DB:     localhost:7050  (provit/provit)
+  DB:     localhost:7050  (leaflow/leaflow)
 ========================================
 "
 

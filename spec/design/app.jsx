@@ -6,7 +6,7 @@ const { DesignCanvas, DCSection, DCArtboard } = window;
 function App() {
   return (
     <DesignCanvas
-      title="Provit · Yön A"
+      title="Leaflow · Yön A"
       subtitle="Sıcak krem + zeytin yeşili · Inter Tight + Instrument Serif"
     >
       <DCSection id="web" title="Web (yönetim paneli)">

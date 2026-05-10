@@ -1,14 +1,14 @@
-# Provit — Claude Code Build Spec
+# Leaflow — Claude Code Build Spec
 
 > **Amaç:** Bu doküman, Claude Code'a verildiğinde **3 ayrı projeyi (BE / Web / Mobile)** mock data ile sıfırdan ayağa kaldırması için yeterli olmalıdır. Her bölüm net, eksiksiz ve karar verilmiş halde yazılmıştır. Belirsizlik bırakılmamıştır; gri alanlar varsayım olarak işaretlenmiştir.
 >
-> **Tasarım referansı:** `Provit Design.html` (Yön A — sıcak krem + zeytin yeşili).
+> **Tasarım referansı:** `Leaflow Design.html` (Yön A — sıcak krem + zeytin yeşili).
 
 ---
 
 ## 0. Proje özeti
 
-**Provit**, ekipler için **Görev oluşturma → Atama → Gerçekleştirme → İspat → Onay** sistemidir. Yöneticiler checklist ve görev grupları tanımlar, takımlara atar; üyeler sahada mobil uygulamayla görevleri tamamlar (foto + checklist + zaman damgası); yöneticiler ispatları onaylar.
+**Leaflow**, ekipler için **Görev oluşturma → Atama → Gerçekleştirme → İspat → Onay** sistemidir. Yöneticiler checklist ve görev grupları tanımlar, takımlara atar; üyeler sahada mobil uygulamayla görevleri tamamlar (foto + checklist + zaman damgası); yöneticiler ispatları onaylar.
 
 **Domain dili (Türkçe):** Takım, Üye, Yönetici, Soru Grubu, Soru, Görev Grubu, Görev, Atama, Çalıştırma (Run), İspat, Onay.
 
@@ -362,7 +362,7 @@ sendToUser(userId, { title, body, data })  // mock: console.log + DB insert
 ## 6. Mock data seed (kesin)
 
 `apps/api/prisma/seed.js`:
-- 8 kullanıcı (admin@provit.test + 7 üye)
+- 8 kullanıcı (admin@leaflow.test + 7 üye)
 - 3 takım, her takımda 1 manager + 2-3 üye
 - 2 soru grubu: "Açılış Kontrolü" (5 soru), "Kapanış Kontrolü" (4 soru)
 - 3 task group:
@@ -377,7 +377,7 @@ sendToUser(userId, { title, body, data })  // mock: console.log + DB insert
 
 ---
 
-## 7. Web ekranları (Yön A — Provit Design.html birebir)
+## 7. Web ekranları (Yön A — Leaflow Design.html birebir)
 
 | Route                | Sayfa            | İçerik                                                                |
 |----------------------|------------------|-----------------------------------------------------------------------|
@@ -434,10 +434,10 @@ Fontlar: Inter Tight (UI), Instrument Serif (büyük başlık), Geist Mono (mono
 ## 9. Test hesapları (mock)
 
 ```
-admin@provit.test  / herhangi   → 3 takımın yöneticisi
-ayse@provit.test   / herhangi   → Bahçeşehir manager
-mehmet@provit.test / herhangi   → Bahçeşehir member
-zeynep@provit.test / herhangi   → Kadıköy member
+admin@leaflow.test  / herhangi   → 3 takımın yöneticisi
+ayse@leaflow.test   / herhangi   → Bahçeşehir manager
+mehmet@leaflow.test / herhangi   → Bahçeşehir member
+zeynep@leaflow.test / herhangi   → Kadıköy member
 ...
 ```
 
@@ -450,23 +450,23 @@ Claude Code'un teslim ettiğinde aşağıdakiler ÇALIŞIYOR olmalı:
 1. `docker compose up -d` → postgres ayakta
 2. `pnpm install && pnpm --filter api db:push && pnpm --filter api seed`
 3. `pnpm dev` → API (4000) + Web (5173) açık
-4. Web'te `admin@provit.test` ile giriş → Dashboard'da bugünkü atamalar görünüyor
+4. Web'te `admin@leaflow.test` ile giriş → Dashboard'da bugünkü atamalar görünüyor
 5. `/task-groups` → wizard ile yeni grup oluşturulabiliyor (DAG döngüsü engelleniyor)
 6. `/approvals` → bekleyen onaya tıklanıyor, onaylanınca kuyruktan düşüyor + notification düşüyor
 7. `pnpm --filter mobile start` → Expo Go ile bağlanılıyor; aynı kullanıcıyla login → Today ekranı dolu
 8. Mobil TaskWizard: foto seç → mock upload → checklist doldur → tamamla → web tarafı approvals'a düşüyor
-9. Tüm ekranlar `Provit Design.html`'deki Yön A görseliyle eşleşiyor (renk, tipografi, boşluk)
+9. Tüm ekranlar `Leaflow Design.html`'deki Yön A görseliyle eşleşiyor (renk, tipografi, boşluk)
 
 ---
 
 ## 11. Klasör yapısı (kesin)
 
 ```
-provit/
+leaflow/
 ├─ docker-compose.yml
 ├─ package.json            (workspaces root, scripts: dev/seed/test)
 ├─ pnpm-workspace.yaml
-├─ Provit Design.html      (görsel referans — değiştirme)
+├─ Leaflow Design.html     (görsel referans — değiştirme)
 ├─ CLAUDE_CODE_SPEC.md     (bu dosya)
 ├─ apps/
 │  ├─ api/

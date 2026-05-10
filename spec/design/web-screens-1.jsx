@@ -1,5 +1,5 @@
 // web-screens-1.jsx — Login, Dashboard, Teams, Checklists
-// Tüm ekranlar 1280×800 sabit; Provit Yön A.
+// Tüm ekranlar 1280×800 sabit; Leaflow Yön A.
 
 const WebShell = ({ children, route = '/', wide = false }) => {
   const items = [
@@ -19,7 +19,7 @@ const WebShell = ({ children, route = '/', wide = false }) => {
         <div style={{
           fontFamily: T.fontSerif, fontSize: 28, fontStyle: 'italic',
           color: T.ink, marginBottom: 32, paddingLeft: 8,
-        }}>Provit</div>
+        }}>Leaflow</div>
         <nav style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {items.map(([p, label]) => {
             const on = p === route;
@@ -57,7 +57,7 @@ window.WebLogin = function WebLogin() {
       display: 'flex', alignItems: 'stretch',
     }}>
       <div style={{ flex: 1, padding: 64, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-        <div style={{ fontFamily: T.fontSerif, fontSize: 32, fontStyle: 'italic', color: T.ink }}>Provit</div>
+        <div style={{ fontFamily: T.fontSerif, fontSize: 32, fontStyle: 'italic', color: T.ink }}>Leaflow</div>
         <div style={{ maxWidth: 380 }}>
           <div style={{
             fontFamily: T.fontSerif, fontSize: 56, lineHeight: 1.05, color: T.ink,
@@ -67,13 +67,13 @@ window.WebLogin = function WebLogin() {
             Görev oluştur, ata, gerçekleştir, ispatla, onayla. Tek bir akışta.
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <Field label="E-posta" value="ayse@provit.test" />
+            <Field label="E-posta" value="ayse@leaflow.test" />
             <Field label="Parola" value="••••••••" />
             <UI.Button variant="primary" size="lg">Giriş yap →</UI.Button>
           </div>
         </div>
         <div style={{ fontFamily: T.fontMono, fontSize: 11, color: T.muteSoft }}>
-          v0.1 · admin@provit.test / herhangi bir şifre
+          v0.1 · admin@leaflow.test / herhangi bir şifre
         </div>
       </div>
       <div style={{
@@ -241,12 +241,12 @@ window.WebTeams = function WebTeams() {
     { id: 3, name: 'Ataşehir', code: 'ATA', members: 4 },
   ];
   const members = [
-    { name: 'Ayşe Kaya', email: 'ayse@provit.test', role: 'MANAGER' },
-    { name: 'Mehmet Yıldız', email: 'mehmet@provit.test', role: 'MEMBER' },
-    { name: 'Zeynep Toprak', email: 'zeynep@provit.test', role: 'MEMBER' },
-    { name: 'Can Aslan', email: 'can@provit.test', role: 'MEMBER' },
-    { name: 'Elif Demir', email: 'elif@provit.test', role: 'MEMBER' },
-    { name: 'Mert Yağmur', email: 'mert@provit.test', role: 'MEMBER' },
+    { name: 'Ayşe Kaya', email: 'ayse@leaflow.test', role: 'MANAGER' },
+    { name: 'Mehmet Yıldız', email: 'mehmet@leaflow.test', role: 'MEMBER' },
+    { name: 'Zeynep Toprak', email: 'zeynep@leaflow.test', role: 'MEMBER' },
+    { name: 'Can Aslan', email: 'can@leaflow.test', role: 'MEMBER' },
+    { name: 'Elif Demir', email: 'elif@leaflow.test', role: 'MEMBER' },
+    { name: 'Mert Yağmur', email: 'mert@leaflow.test', role: 'MEMBER' },
   ];
   return (
     <WebShell route="/teams">

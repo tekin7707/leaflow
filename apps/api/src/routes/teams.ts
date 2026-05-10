@@ -1,7 +1,7 @@
 import express from 'express';
 import {
   TeamCreateSchema, TeamMemberAddSchema, TeamMemberRoleSchema,
-} from '@provit/shared/schemas';
+} from '@leaflow/shared/schemas';
 import { prisma } from '../db.js';
 import { adapters } from '../adapters/index.js';
 import { requireAuth, getFreshUpstreamToken } from '../auth.js';

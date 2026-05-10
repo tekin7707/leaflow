@@ -10,7 +10,7 @@ export function AuthProvider({ children }: { children: any }) {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const tok = await session.getProvitToken();
+      const tok = await session.getLeaflowToken();
       if (!tok) {
         setLoading(false);
         return;
@@ -29,7 +29,7 @@ export function AuthProvider({ children }: { children: any }) {
 
   const login = async (email: string, password: string) => {
     const r = await api.post('/api/auth/login', { email, password });
-    await session.setProvitToken(r.token);
+    await session.setLeaflowToken(r.token);
     if (r.upstream) {
       await session.setUpstream({
         accessToken: r.upstream.accessToken,

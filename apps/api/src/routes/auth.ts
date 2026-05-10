@@ -1,5 +1,5 @@
 import express from 'express';
-import { LoginSchema } from '@provit/shared/schemas';
+import { LoginSchema } from '@leaflow/shared/schemas';
 import { z } from 'zod';
 import { prisma } from '../db.js';
 import { adapters } from '../adapters/index.js';

@@ -1,4 +1,4 @@
-// Provit Yön A — RN versiyonu
+// Leaflow Yön A — RN versiyonu
 export const T = {
   bg: '#FAF8F4',
   surface: '#FFFFFF',

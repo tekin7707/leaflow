@@ -30,10 +30,10 @@ export const FILOAD_BASE_URL: string = extra.filoadBaseUrl ?? 'https://fiload.ag
 export const EAS_PROJECT_ID: string | undefined = extra.eas?.projectId ?? easConfig?.projectId;
 
 const KEYS = {
-  provitToken: 'provit.token',
-  agentechAccess: 'provit.agentech.access',
-  agentechRefresh: 'provit.agentech.refresh',
-  agentechExpiresAt: 'provit.agentech.expiresAt',
+  leaflowToken: 'leaflow.token',
+  agentechAccess: 'leaflow.agentech.access',
+  agentechRefresh: 'leaflow.agentech.refresh',
+  agentechExpiresAt: 'leaflow.agentech.expiresAt',
 };
 
 const get = (k: string) => storage.getItemAsync(k);
@@ -41,8 +41,8 @@ const set = (k: string, v: string) => storage.setItemAsync(k, v);
 const del = (k: string) => storage.deleteItemAsync(k);
 
 export const session = {
-  getProvitToken: () => get(KEYS.provitToken),
-  setProvitToken: (t: string) => set(KEYS.provitToken, t),
+  getLeaflowToken: () => get(KEYS.leaflowToken),
+  setLeaflowToken: (t: string) => set(KEYS.leaflowToken, t),
 
   async setUpstream(tokens: { accessToken: string; refreshToken: string; expiresIn: number }) {
     const expiresAt = Date.now() + tokens.expiresIn * 1000;
@@ -85,7 +85,7 @@ export const session = {
 
   async clear() {
     await Promise.all([
-      del(KEYS.provitToken),
+      del(KEYS.leaflowToken),
       del(KEYS.agentechAccess),
       del(KEYS.agentechRefresh),
       del(KEYS.agentechExpiresAt),
@@ -110,7 +110,7 @@ export async function api(path: string, opts: ReqOpts = {}) {
   const isJson = opts.body && typeof opts.body !== 'string' && !(opts.body instanceof FormData);
   if (isJson && !headers['Content-Type']) headers['Content-Type'] = 'application/json';
 
-  const token = await session.getProvitToken();
+  const token = await session.getLeaflowToken();
   if (token) headers.Authorization = `Bearer ${token}`;
 
   const body = isJson ? JSON.stringify(opts.body) : opts.body;
