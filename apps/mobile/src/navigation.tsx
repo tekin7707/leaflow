@@ -177,8 +177,8 @@ export function RootNavigation() {
           <>
             <Stack.Screen name="Tabs" component={MainTabs} options={{ headerShown: false }} />
             <Stack.Screen name="TaskWizard" component={TaskWizardScreen} options={{ presentation: 'modal', title: 'Görev' }} />
-            <Stack.Screen name="QuickAssign" component={QuickAssignScreen} options={{ presentation: 'modal', title: 'Mevcut göreve ata' }} />
-            <Stack.Screen name="QuickTask" component={QuickTaskScreen} options={{ presentation: 'modal', title: 'Hızlı görev' }} />
+            <Stack.Screen name="QuickAssign" component={QuickAssignScreen} options={{ presentation: 'modal', title: 'Hızlı atama' }} />
+            <Stack.Screen name="QuickTask" component={QuickTaskScreen} options={{ presentation: 'modal', title: 'Hızlı atama' }} />
             <Stack.Screen name="TaskGroupDetail" component={TaskGroupDetailScreen} options={{ title: 'Görev grubu' }} />
           </>
         )}

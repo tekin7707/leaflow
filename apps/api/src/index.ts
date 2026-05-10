@@ -32,6 +32,7 @@ app.get('/api/health', (_req, res) => res.json({ ok: true, ts: Date.now() }));
 app.use('/api/auth', authRoutes);
 app.use('/api/teams', teamsRoutes);
 app.use('/api/question-groups', questionGroupsRoutes);
+app.use('/api/checklists', questionGroupsRoutes);
 app.use('/api/task-groups', taskGroupsRoutes);
 app.use('/api/assignments', assignmentsRoutes);
 app.use('/api/task-runs', taskRunsRoutes);

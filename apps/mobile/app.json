@@ -55,7 +55,7 @@
       "expo-secure-store"
     ],
     "extra": {
-      "apiUrl": "http://192.168.1.61:7051",
+      "apiUrl": "http://192.168.1.74:7051",
       "agentechBaseUrl": "https://api.agentechauth.com/api",
       "agentechApiKey": "pk_865b8622f8644c1de83d546e99a924dd",
       "filoadBaseUrl": "https://fiload.agentechauth.com",

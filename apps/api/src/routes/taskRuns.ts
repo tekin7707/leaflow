@@ -9,6 +9,29 @@ import { unblockDependents } from '../services/deps.js';
 export const taskRunsRoutes = express.Router();
 taskRunsRoutes.use(requireAuth);
 
+const withViewerState = (run: any, userId: string, teamIds: string[]) => {
+  const viewerCanAct = Boolean(
+    run.assigneeId === userId
+    || run.run?.participantUserId === userId
+    || (run.assigneeId == null
+      && run.run?.participantUserId == null
+      && teamIds.includes(run.run?.assignment?.teamId)),
+  );
+
+  let viewerMode = 'WATCH';
+  if (run.assigneeId === userId) viewerMode = 'ASSIGNEE';
+  else if (run.run?.participantUserId === userId) viewerMode = 'PARTICIPANT';
+  else if (run.assigneeId == null && run.run?.participantUserId == null && teamIds.includes(run.run?.assignment?.teamId)) viewerMode = 'TEAM_SHARED';
+  else if (run.run?.assignment?.createdById === userId) viewerMode = 'CREATOR_WATCH';
+
+  return {
+    ...run,
+    viewerCanAct,
+    viewerMode,
+    viewerLabel: viewerCanAct ? 'İşlem yapabilirsin' : 'İzleme',
+  };
+};
+
 const startOfDay = (d) => {
   const x = new Date(d);
   x.setHours(0, 0, 0, 0);
@@ -34,12 +57,18 @@ taskRunsRoutes.get(
         OR: [
           // Explicitly mine
           { assigneeId: userId },
+          { run: { ...( { participantUserId: userId } as any ) } },
           // I created the assignment
           { run: { assignment: { createdById: userId } } },
-          // Unassigned task in one of my teams
-          { AND: [{ assigneeId: null }, { run: { assignment: { teamId: { in: teamIds } } } }] },
+          // Legacy shared run in one of my teams
+          {
+            AND: [
+              { assigneeId: null },
+              { run: { ...( { participantUserId: null, assignment: { teamId: { in: teamIds } } } as any ) } },
+            ],
+          },
         ],
-      },
+      } as any,
       include: {
         task: { include: { questionGroup: true } },
         run: { include: { assignment: { include: { group: true, team: true } } } },
@@ -48,7 +77,7 @@ taskRunsRoutes.get(
       },
       orderBy: [{ run: { date: 'asc' } }, { task: { order: 'asc' } }],
     });
-    res.json(runs);
+    res.json(runs.map((run) => withViewerState(run, userId, teamIds)));
   }),
 );
 
@@ -110,15 +139,16 @@ taskRunsRoutes.get(
     // Build the user-relevance OR clauses. Used universally so that creators
     // always see what they assigned, assignees always see their work, and
     // team members see their team's load — even if scopes overlap.
-    const visibility = {
+    const visibility: any = {
       OR: [
         { assigneeId: userId },
-        { run: { assignment: { teamId: { in: teamIds } } } },
+        { run: { ...( { participantUserId: userId } as any ) } },
+        { AND: [{ assigneeId: null }, { run: { ...( { participantUserId: null, assignment: { teamId: { in: teamIds } } } as any ) } }] },
         { run: { assignment: { createdById: userId } } },
       ],
     };
 
-    const where = { ...visibility };
+    const where: any = { ...visibility };
     if (scope === 'mine') {
       where.OR = [
         { assigneeId: userId },
@@ -128,13 +158,13 @@ taskRunsRoutes.get(
       where.OR = [{ run: { assignment: { createdById: userId } } }];
     }
 
-    const runFilter = {};
+    const runFilter: any = {};
     if (req.query.teamId) runFilter.assignment = { teamId: String(req.query.teamId) };
     if (req.query.groupId) {
       runFilter.assignment = { ...(runFilter.assignment ?? {}), groupId: String(req.query.groupId) };
     }
     if (req.query.from || req.query.to) {
-      const dateRange = {};
+      const dateRange: any = {};
       if (req.query.from) dateRange.gte = new Date(String(req.query.from));
       if (req.query.to) dateRange.lte = new Date(String(req.query.to));
       runFilter.date = dateRange;
@@ -154,18 +184,18 @@ taskRunsRoutes.get(
       orderBy: [{ run: { date: 'desc' } }, { task: { order: 'asc' } }],
       take: 200,
     });
-    res.json(runs);
+    res.json(runs.map((run) => withViewerState(run, userId, teamIds)));
   }),
 );
 
 taskRunsRoutes.get(
   '/:id',
   wrap(async (req, res) => {
-    const tr = await prisma.taskRun.findUnique({
+    const tr: any = await (prisma.taskRun.findUnique as any)({
       where: { id: req.params.id },
       include: {
         task: { include: { questionGroup: { include: { questions: { orderBy: { order: 'asc' } } } } } },
-        run: { include: { assignment: { include: { group: true, team: true } } } },
+        run: { include: { assignment: { include: { group: { include: { questionGroup: { include: { questions: { orderBy: { order: 'asc' } } } } } }, team: true } } } },
         proofs: true,
         answers: true,
         approvals: true,
@@ -173,7 +203,8 @@ taskRunsRoutes.get(
       },
     });
     if (!tr) throw notFound();
-    res.json(tr);
+    const teamIds = req.user.memberships.map((m) => m.teamId);
+    res.json(withViewerState(tr, req.user.id, teamIds));
   }),
 );
 
@@ -234,7 +265,7 @@ taskRunsRoutes.post(
   wrap(async (req, res) => {
     const tr = await prisma.taskRun.findUnique({ where: { id: req.params.id }, include: { task: true } });
     if (!tr) throw notFound();
-    if (tr.status === 'BLOCKED') throw badRequest('Task is still blocked by dependencies');
+    if (tr.status === 'BLOCKED') throw badRequest('Task is still blocked by dependencies', undefined);
     const updated = await prisma.taskRun.update({
       where: { id: tr.id },
       data: {
@@ -278,7 +309,7 @@ taskRunsRoutes.post(
       const ans = await prisma.answer.findUnique({ where: { id: data.answerId } });
       if (!ans) throw notFound('Answer not found');
       if (ans.taskRunId !== tr.id) {
-        throw badRequest('answerId does not belong to this task run');
+        throw badRequest('answerId does not belong to this task run', undefined);
       }
     }
 
@@ -314,14 +345,27 @@ taskRunsRoutes.post(
       tr.run.assignment.group.minFiles ?? 0,
     );
     if (tr.proofs.length < minFiles) {
-      throw badRequest(`En az ${minFiles} dosya eklemelisin (eklenen: ${tr.proofs.length})`);
+      throw badRequest(`En az ${minFiles} dosya eklemelisin (eklenen: ${tr.proofs.length})`, undefined);
     }
-    if (tr.task.questionGroup) {
-      const required = tr.task.questionGroup.questions.filter((q) => q.required);
+    const assignmentGroup: any = tr.run.assignment.group;
+    const checklistGroups = [
+      tr.task.questionGroup
+        ? { group: tr.task.questionGroup, requirement: tr.task.checklistRequirement, label: 'alt görev checklisti' }
+        : null,
+      assignmentGroup.questionGroup
+        ? { group: assignmentGroup.questionGroup, requirement: assignmentGroup.checklistRequirement, label: 'görev grubu checklisti' }
+        : null,
+    ].filter(Boolean) as Array<{ group: any; requirement: string; label: string }>;
+
+    if (checklistGroups.length > 0) {
       const answeredIds = new Set(tr.answers.map((a) => a.questionId));
-      const missing = required.filter((q) => !answeredIds.has(q.id));
-      if (missing.length > 0) {
-        throw badRequest(`Cevaplanmamış zorunlu sorular: ${missing.length}`);
+      for (const checklist of checklistGroups) {
+        if (checklist.requirement !== 'MANDATORY') continue;
+        const required = checklist.group.questions.filter((q: any) => q.required);
+        const missing = required.filter((q: any) => !answeredIds.has(q.id));
+        if (missing.length > 0) {
+          throw badRequest(`${checklist.label} içinde cevaplanmamış zorunlu sorular var: ${missing.length}`, undefined);
+        }
       }
     }
 

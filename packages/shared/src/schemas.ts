@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import {
-  TeamRole, AnswerType, ApprovalDecision,
+  TeamRole, AnswerType, ApprovalDecision, TaskGroupKind, ExecutionMode, ApprovalMode, ChecklistRequirement,
 } from './enums.js';
 
 const enumValues = <T extends Record<string, string>>(obj: T) =>
@@ -55,6 +55,7 @@ export const TaskInputSchema = z.object({
   minFiles: z.number().int().min(0).default(0),
   requiresApproval: z.boolean().default(false),
   questionGroupId: z.string().nullable().optional(),
+  checklistRequirement: z.enum(enumValues(ChecklistRequirement)).default(ChecklistRequirement.OPTIONAL),
   dependsOn: z.array(z.string()).default([]),
 });
 export type TaskInput = z.infer<typeof TaskInputSchema>;
@@ -62,9 +63,14 @@ export type TaskInput = z.infer<typeof TaskInputSchema>;
 export const TaskGroupCreateSchema = z.object({
   name: z.string().min(1).max(120),
   description: z.string().optional(),
+  kind: z.enum(enumValues(TaskGroupKind)).default(TaskGroupKind.GROUP),
+  defaultExecutionMode: z.enum(enumValues(ExecutionMode)).default(ExecutionMode.REPRESENTATIVE),
+  defaultApprovalMode: z.enum(enumValues(ApprovalMode)).default(ApprovalMode.NONE),
   requiresApproval: z.boolean().default(false),
   minFiles: z.number().int().min(0).default(0),
   recurrence: z.string().nullable().optional(),
+  questionGroupId: z.string().nullable().optional(),
+  checklistRequirement: z.enum(enumValues(ChecklistRequirement)).default(ChecklistRequirement.OPTIONAL),
   tasks: z.array(TaskInputSchema).min(1),
 });
 export type TaskGroupCreateInput = z.infer<typeof TaskGroupCreateSchema>;
@@ -78,11 +84,17 @@ export const TaskReorderSchema = z.object({
 export const AssignmentCreateSchema = z
   .object({
     groupId: z.string().min(1),
-    teamId: z.string().min(1),
+    teamId: z.string().min(1).optional(),
     startsAt: z.string().datetime(),
     endsAt: z.string().datetime(),
     approverId: z.string().nullable().optional(),
     assigneeId: z.string().nullable().optional(),
+    executionMode: z.enum(enumValues(ExecutionMode)).optional(),
+    approvalMode: z.enum(enumValues(ApprovalMode)).optional(),
+  })
+  .refine((v) => Boolean(v.teamId || v.assigneeId), {
+    message: 'teamId or assigneeId is required',
+    path: ['teamId'],
   })
   .refine(
     (v) => new Date(v.endsAt).getTime() > new Date(v.startsAt).getTime(),
@@ -106,6 +118,7 @@ export const AssignmentQuickSchema = z.object({
     id: z.string().min(1),
   }),
   when: z.string().min(1),
+  executionMode: z.enum(enumValues(ExecutionMode)).optional(),
 });
 
 /**
@@ -115,15 +128,12 @@ export const AssignmentQuickSchema = z.object({
 export const QuickTaskSchema = z.object({
   name: z.string().min(1).max(120),
   description: z.string().optional(),
+  questionGroupId: z.string().min(1),
+  checklistRequirement: z.enum(enumValues(ChecklistRequirement)).default(ChecklistRequirement.MANDATORY),
   requiresApproval: z.boolean().default(false),
   minFiles: z.number().int().min(0).default(0),
   estimatedMinutes: z.number().int().min(1).default(15),
   recurrence: z.string().nullable().optional(),
-  // Optional immediate assignment.
-  teamId: z.string().min(1).optional(),
-  assigneeId: z.string().min(1).optional(),
-  // 'NOW' | 'TODAY' | 'TOMORROW' | ISO datetime
-  when: z.string().optional(),
 });
 export type QuickTaskInput = z.infer<typeof QuickTaskSchema>;
 

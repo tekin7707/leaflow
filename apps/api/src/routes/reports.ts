@@ -78,3 +78,57 @@ reportsRoutes.get(
     });
   }),
 );
+
+reportsRoutes.get(
+  '/missing',
+  wrap(async (req, res) => {
+    const today = startOfDay(new Date());
+    const teamIds = req.query.teamId
+      ? [String(req.query.teamId)]
+      : req.user.memberships.map((m) => m.teamId);
+
+    const runs = await prisma.taskGroupRun.findMany({
+      where: {
+        date: { lt: today },
+        assignment: { teamId: { in: teamIds } },
+        taskRuns: {
+          some: {
+            status: { notIn: ['DONE', 'APPROVED'] },
+          },
+        },
+      },
+      include: {
+        participant: true,
+        assignment: {
+          include: {
+            team: true,
+            group: true,
+          },
+        },
+        taskRuns: {
+          select: { id: true, status: true, assigneeId: true },
+        },
+      },
+      orderBy: [{ date: 'desc' }],
+      take: 500,
+    });
+
+    res.json(runs.map((run) => ({
+      id: run.id,
+      date: run.date,
+      assignmentId: run.assignmentId,
+      executionMode: run.assignment.executionMode,
+      team: run.assignment.team,
+      group: { id: run.assignment.group.id, name: run.assignment.group.name },
+      participant: run.participant
+        ? {
+          id: run.participant.id,
+          displayName: run.participant.displayName,
+          email: run.participant.email,
+        }
+        : null,
+      incompleteTaskCount: run.taskRuns.filter((taskRun) => !['DONE', 'APPROVED'].includes(taskRun.status)).length,
+      taskRuns: run.taskRuns,
+    })));
+  }),
+);

@@ -16,6 +16,10 @@ const APP_ID = (Constants.expoConfig as any)?.android?.package
   ?? (Constants.expoConfig as any)?.ios?.bundleIdentifier
   ?? 'com.provit.mobile';
 
+const resolvedProjectId = EAS_PROJECT_ID
+  ?? (Constants.expoConfig as any)?.extra?.eas?.projectId
+  ?? (Constants.easConfig as any)?.projectId;
+
 /**
  * Asks for notification permission, fetches the Expo push token, and registers
  * the device with both agentechauth (per spec §5.2) and our own API (so the
@@ -41,8 +45,11 @@ export async function registerPush(): Promise<string | null> {
     }
 
     const tokenData = await Notifications.getExpoPushTokenAsync(
-      EAS_PROJECT_ID ? { projectId: EAS_PROJECT_ID } : undefined,
-    ).catch(() => null);
+      resolvedProjectId ? { projectId: resolvedProjectId } : undefined,
+    ).catch((err) => {
+      console.warn('push:getExpoPushToken error', err);
+      return null;
+    });
     const token = tokenData?.data;
     if (!token) return null;
 
@@ -62,7 +69,7 @@ export async function registerPush(): Promise<string | null> {
           platform: Platform.OS === 'ios' ? 'ios' : 'android',
           deviceName: Constants.deviceName ?? `${Platform.OS}-device`,
           appId: APP_ID,
-          experienceId: EAS_PROJECT_ID,
+          experienceId: resolvedProjectId,
         },
       });
     } catch (err) {
@@ -79,7 +86,7 @@ export async function registerPush(): Promise<string | null> {
 export async function unregisterPush(): Promise<void> {
   try {
     const tokenData = await Notifications.getExpoPushTokenAsync(
-      EAS_PROJECT_ID ? { projectId: EAS_PROJECT_ID } : undefined,
+      resolvedProjectId ? { projectId: resolvedProjectId } : undefined,
     ).catch(() => null);
     const token = tokenData?.data;
     if (token) {

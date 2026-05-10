@@ -1,7 +1,7 @@
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
-import { useQuery } from '@tanstack/react-query';
+import { View, Text, ScrollView, StyleSheet, Alert, TouchableOpacity } from 'react-native';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api';
-import { Card, Pill, SectionLabel } from '../components';
+import { Btn, Card, Pill, SectionLabel } from '../components';
 import { T } from '../theme';
 
 const fmt = (d: string | Date) =>
@@ -9,7 +9,15 @@ const fmt = (d: string | Date) =>
 
 export default function TaskGroupDetailScreen({ route }: any) {
   const id: string = route.params.id;
+  const qc = useQueryClient();
   const q = useQuery({ queryKey: ['tg', id], queryFn: () => api.get(`/api/task-groups/${id}`) });
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ['tg'] });
+    qc.invalidateQueries({ queryKey: ['tg', id] });
+  };
+  const suspend = useMutation({ mutationFn: (assignmentId: string) => api.post(`/api/assignments/${assignmentId}/suspend`), onSuccess: refresh });
+  const activate = useMutation({ mutationFn: (assignmentId: string) => api.post(`/api/assignments/${assignmentId}/activate`), onSuccess: refresh });
+  const remove = useMutation({ mutationFn: (assignmentId: string) => api.del(`/api/assignments/${assignmentId}`), onSuccess: refresh });
   const g = q.data;
 
   if (!g) {
@@ -63,9 +71,28 @@ export default function TaskGroupDetailScreen({ route }: any) {
                 {fmt(a.startsAt)} → {fmt(a.endsAt)}
               </Text>
             </View>
-            <Pill tone={a.status === 'ACTIVE' ? { bg: T.accentSoft, fg: T.accent } : undefined}>
-              {a.status}
-            </Pill>
+            <View style={{ alignItems: 'flex-end', gap: 6 }}>
+              <Pill tone={a.status === 'ACTIVE' ? { bg: T.accentSoft, fg: T.accent } : a.status === 'SUSPENDED' ? { bg: T.warnSoft, fg: T.warn } : undefined}>
+                {a.status}
+              </Pill>
+              <View style={{ flexDirection: 'row', gap: 6 }}>
+                {a.status !== 'SUSPENDED' ? (
+                  <Btn variant="ghost" onPress={() => suspend.mutate(a.id)} style={{ paddingVertical: 6, paddingHorizontal: 10 }}>Askıya al</Btn>
+                ) : (
+                  <Btn variant="ghost" onPress={() => activate.mutate(a.id)} style={{ paddingVertical: 6, paddingHorizontal: 10 }}>Aktif et</Btn>
+                )}
+                <Btn
+                  variant="danger"
+                  onPress={() => Alert.alert('Atamayı sil', 'Bu atama ve oluşturduğu run kayıtları silinecek.', [
+                    { text: 'İptal', style: 'cancel' },
+                    { text: 'Sil', style: 'destructive', onPress: () => remove.mutate(a.id) },
+                  ])}
+                  style={{ paddingVertical: 6, paddingHorizontal: 10 }}
+                >
+                  Sil
+                </Btn>
+              </View>
+            </View>
           </View>
         ))}
       </Card>

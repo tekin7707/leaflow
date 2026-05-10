@@ -19,14 +19,15 @@ const storage = Platform.OS === 'web'
       deleteItemAsync: SecureStore.deleteItemAsync,
     };
 
-const extra = Constants.expoConfig?.extra ?? {};
+const easConfig = Constants.easConfig as any;
+const extra = Constants.expoConfig?.extra ?? easConfig?.extra ?? {};
 const nativeApiUrl = extra.apiUrl ?? 'http://localhost:7051';
 
 export const API_URL: string = Platform.OS === 'web' ? 'http://localhost:7051' : nativeApiUrl;
 export const AGENTECH_BASE_URL: string = extra.agentechBaseUrl ?? 'https://api.agentechauth.com/api';
 export const AGENTECH_API_KEY: string = extra.agentechApiKey ?? '';
 export const FILOAD_BASE_URL: string = extra.filoadBaseUrl ?? 'https://fiload.agentechauth.com';
-export const EAS_PROJECT_ID: string | undefined = extra.eas?.projectId;
+export const EAS_PROJECT_ID: string | undefined = extra.eas?.projectId ?? easConfig?.projectId;
 
 const KEYS = {
   provitToken: 'provit.token',

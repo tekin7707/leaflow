@@ -7,6 +7,7 @@ import { prisma } from '../db.js';
 import { requireAuth } from '../auth.js';
 import { wrap, notFound, badRequest } from '../errors.js';
 import { detectCycle, validateDepsWithinGroup } from '../services/deps.js';
+import { buildAssignmentParticipantSummary } from '../services/assignmentParticipants.js';
 
 export const taskGroupsRoutes = express.Router();
 taskGroupsRoutes.use(requireAuth);
@@ -14,8 +15,12 @@ taskGroupsRoutes.use(requireAuth);
 taskGroupsRoutes.get(
   '/',
   wrap(async (_req, res) => {
-    const groups = await prisma.taskGroup.findMany({
-      include: { _count: { select: { tasks: true, assignments: true } } },
+    const groups: any[] = await (prisma.taskGroup.findMany as any)({
+      include: {
+        tasks: { where: { archivedAt: null }, select: { id: true } },
+        questionGroup: { select: { id: true, name: true } },
+        _count: { select: { assignments: true } },
+      },
       orderBy: { createdAt: 'desc' },
     });
     res.json(
@@ -23,10 +28,16 @@ taskGroupsRoutes.get(
         id: g.id,
         name: g.name,
         description: g.description,
+        kind: g.kind,
+        defaultExecutionMode: g.defaultExecutionMode,
+        defaultApprovalMode: g.defaultApprovalMode,
         requiresApproval: g.requiresApproval,
         minFiles: g.minFiles,
         recurrence: g.recurrence,
-        taskCount: g._count.tasks,
+        questionGroup: g.questionGroup,
+        questionGroupId: g.questionGroupId,
+        checklistRequirement: g.checklistRequirement,
+        taskCount: g.tasks.length,
         assignmentCount: g._count.assignments,
         createdAt: g.createdAt,
       })),
@@ -49,13 +60,19 @@ taskGroupsRoutes.post(
     detectCycle(tasks);
 
     const created = await prisma.$transaction(async (tx) => {
-      const grp = await tx.taskGroup.create({
+      const db: any = tx;
+      const grp = await db.taskGroup.create({
         data: {
           name: data.name,
           description: data.description ?? null,
+          kind: data.kind,
+          defaultExecutionMode: data.defaultExecutionMode,
+          defaultApprovalMode: data.defaultApprovalMode,
           requiresApproval: data.requiresApproval ?? false,
           minFiles: data.minFiles ?? 0,
           recurrence: data.recurrence ?? null,
+          questionGroupId: data.questionGroupId ?? null,
+          checklistRequirement: data.checklistRequirement,
         },
       });
 
@@ -75,6 +92,7 @@ taskGroupsRoutes.post(
           minFiles: t.minFiles,
           requiresApproval: t.requiresApproval,
           questionGroupId: t.questionGroupId ?? null,
+          checklistRequirement: t.checklistRequirement,
           dependsOn: (t.dependsOn ?? []).map((d) => idMap.get(d)).filter(Boolean),
         })),
       });
@@ -92,10 +110,11 @@ taskGroupsRoutes.post(
 taskGroupsRoutes.get(
   '/:id',
   wrap(async (req, res) => {
-    const g = await prisma.taskGroup.findUnique({
+    const g: any = await (prisma.taskGroup.findUnique as any)({
       where: { id: req.params.id },
       include: {
-        tasks: { orderBy: { order: 'asc' }, include: { questionGroup: true } },
+        questionGroup: true,
+        tasks: { where: { archivedAt: null }, orderBy: { order: 'asc' }, include: { questionGroup: true } },
         assignments: {
           include: { team: true },
           orderBy: { startsAt: 'desc' },
@@ -104,7 +123,16 @@ taskGroupsRoutes.get(
       },
     });
     if (!g) throw notFound();
-    res.json(g);
+    const participantSummary = await buildAssignmentParticipantSummary(
+      g.assignments.map((assignment) => assignment.id),
+    );
+    res.json({
+      ...g,
+      assignments: g.assignments.map((assignment) => ({
+        ...assignment,
+        participantSummary: participantSummary.get(assignment.id) ?? null,
+      })),
+    });
   }),
 );
 
@@ -124,26 +152,31 @@ taskGroupsRoutes.put(
       detectCycle(tasks);
 
       const updated = await prisma.$transaction(async (tx) => {
-        await tx.taskGroup.update({
+        const db: any = tx;
+        await db.taskGroup.update({
           where: { id: groupId },
           data: {
             name: data.name,
             description: data.description ?? null,
+            kind: data.kind,
+            defaultExecutionMode: data.defaultExecutionMode,
+            defaultApprovalMode: data.defaultApprovalMode,
             requiresApproval: data.requiresApproval ?? false,
             minFiles: data.minFiles ?? 0,
             recurrence: data.recurrence ?? null,
+            questionGroupId: data.questionGroupId ?? null,
+            checklistRequirement: data.checklistRequirement,
           },
         });
 
-        const existing = await tx.task.findMany({ where: { groupId } });
-        const existingIds = new Set(existing.map((t) => t.id));
+        const existing = await db.task.findMany({ where: { groupId, archivedAt: null } });
         const idMap = new Map();
         for (const t of tasks) {
-          idMap.set(t.id, existingIds.has(t.id) ? t.id : uuid());
+          idMap.set(t.id, uuid());
         }
-        const keepIds = new Set([...idMap.values()]);
-        await tx.task.deleteMany({
-          where: { groupId, id: { notIn: [...keepIds] } },
+        await db.task.updateMany({
+          where: { groupId, archivedAt: null },
+          data: { archivedAt: new Date() },
         });
 
         for (const t of tasks) {
@@ -157,24 +190,21 @@ taskGroupsRoutes.put(
             minFiles: t.minFiles,
             requiresApproval: t.requiresApproval,
             questionGroupId: t.questionGroupId ?? null,
+            checklistRequirement: t.checklistRequirement,
             dependsOn: (t.dependsOn ?? []).map((d) => idMap.get(d)).filter(Boolean),
           };
-          if (existingIds.has(realId)) {
-            await tx.task.update({ where: { id: realId }, data: payload });
-          } else {
-            await tx.task.create({ data: { id: realId, ...payload } });
-          }
+          await tx.task.create({ data: { id: realId, ...payload } });
         }
 
-        return tx.taskGroup.findUnique({
+        return db.taskGroup.findUnique({
           where: { id: groupId },
-          include: { tasks: { orderBy: { order: 'asc' } } },
+          include: { tasks: { where: { archivedAt: null }, orderBy: { order: 'asc' } } },
         });
       });
       return res.json(updated);
     }
 
-    const updated = await prisma.taskGroup.update({
+    const updated = await (prisma.taskGroup.update as any)({
       where: { id: groupId },
       data: {
         name: data.name,
@@ -182,6 +212,8 @@ taskGroupsRoutes.put(
         requiresApproval: data.requiresApproval,
         minFiles: data.minFiles,
         recurrence: data.recurrence ?? null,
+        questionGroupId: data.questionGroupId ?? null,
+        checklistRequirement: data.checklistRequirement,
       },
     });
     res.json(updated);
@@ -200,12 +232,12 @@ taskGroupsRoutes.post(
   '/:id/tasks/reorder',
   wrap(async (req, res) => {
     const { taskIds } = TaskReorderSchema.parse(req.body);
-    const tasks = await prisma.task.findMany({
-      where: { groupId: req.params.id },
+    const tasks = await (prisma.task.findMany as any)({
+      where: { groupId: req.params.id, archivedAt: null },
     });
     const knownIds = new Set(tasks.map((t) => t.id));
     if (!taskIds.every((id) => knownIds.has(id))) {
-      throw badRequest('taskIds contain unknown ids');
+      throw badRequest('taskIds contain unknown ids', undefined);
     }
     await prisma.$transaction(
       taskIds.map((id, idx) =>

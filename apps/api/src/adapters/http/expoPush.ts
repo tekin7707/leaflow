@@ -52,6 +52,11 @@ async function sendExpoPush(token, payload) {
   return true;
 }
 
+function isExpoPushToken(token) {
+  return typeof token === 'string'
+    && (token.startsWith('ExponentPushToken[') || token.startsWith('ExpoPushToken['));
+}
+
 export const expoPushAdapter = {
   async sendToUser(userId, payload) {
     log.info({ userId, title: payload.title }, 'push:send');
@@ -69,7 +74,7 @@ export const expoPushAdapter = {
     });
 
     const token = u?.pushToken;
-    if (!token || !token.startsWith('ExponentPushToken')) {
+    if (!isExpoPushToken(token)) {
       log.info({ userId, hasToken: !!token }, 'push:skip-no-expo-token');
       return;
     }

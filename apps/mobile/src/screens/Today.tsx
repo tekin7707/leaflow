@@ -48,11 +48,8 @@ export default function TodayScreen({ navigation }) {
             </View>
 
             <View style={{ flexDirection: 'row', gap: 8, marginVertical: 12 }}>
-              <TouchableOpacity onPress={() => navigation.navigate('QuickTask')} style={[s.fab]}>
-                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>+ Hızlı görev</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => navigation.navigate('QuickAssign')} style={[s.fab, { backgroundColor: T.surface, borderColor: T.line, borderWidth: 1 }]}>
-                <Text style={{ color: T.ink, fontWeight: '700', fontSize: 13 }}>Mevcuda ata</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('QuickAssign')} style={[s.fab]}>
+                <Text style={{ color: '#fff', fontWeight: '700', fontSize: 13 }}>+ Hızlı atama</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -66,7 +63,7 @@ export default function TodayScreen({ navigation }) {
             {item.items.map((r) => (
               <TouchableOpacity
                 key={r.id}
-                style={s.row}
+                style={[s.row, !r.viewerCanAct && s.rowWatch]}
                 onPress={() => navigation.navigate('TaskWizard', { taskRunId: r.id })}
                 disabled={r.status === 'BLOCKED'}
               >
@@ -77,6 +74,7 @@ export default function TodayScreen({ navigation }) {
                     {r.task.minFiles > 0 ? ` · ≥${r.task.minFiles} foto` : ''}
                   </Text>
                 </View>
+                <Pill tone={r.viewerCanAct ? 'accent' : 'mute'}>{r.viewerCanAct ? 'Aksiyon' : 'İzleme'}</Pill>
                 <StatusPill status={r.status} />
               </TouchableOpacity>
             ))}
@@ -97,19 +95,17 @@ export default function TodayScreen({ navigation }) {
           if (Platform.OS === 'ios') {
             ActionSheetIOS.showActionSheetWithOptions(
               {
-                options: ['İptal', 'Hızlı görev oluştur', 'Mevcut göreve ata'],
+                options: ['İptal', 'Hızlı atama'],
                 cancelButtonIndex: 0,
               },
               (i) => {
-                if (i === 1) navigation.navigate('QuickTask');
-                if (i === 2) navigation.navigate('QuickAssign');
+                if (i === 1) navigation.navigate('QuickAssign');
               },
             );
           } else {
             Alert.alert('Hızlı eylem', undefined, [
               { text: 'İptal', style: 'cancel' },
-              { text: 'Hızlı görev oluştur', onPress: () => navigation.navigate('QuickTask') },
-              { text: 'Mevcut göreve ata', onPress: () => navigation.navigate('QuickAssign') },
+              { text: 'Hızlı atama', onPress: () => navigation.navigate('QuickAssign') },
             ]);
           }
         }}
@@ -137,6 +133,7 @@ const s = StyleSheet.create({
   floatingFabText: { color: '#fff', fontSize: 28, fontWeight: '600', lineHeight: 32 },
   groupName: { fontSize: 16, fontWeight: '700', color: T.ink },
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, borderTopColor: T.line, borderTopWidth: StyleSheet.hairlineWidth, gap: 8 },
+  rowWatch: { opacity: 0.75, backgroundColor: T.surface },
   taskName: { fontSize: 14, fontWeight: '600', color: T.ink },
   taskMeta: { fontSize: 11, color: T.mute, marginTop: 2 },
 });

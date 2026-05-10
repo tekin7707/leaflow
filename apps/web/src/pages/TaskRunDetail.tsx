@@ -16,7 +16,7 @@ export default function TaskRunDetail() {
   const [assigneeId, setAssigneeId] = useState('');
 
   const trQ = useQuery({ queryKey: ['taskRun', id], queryFn: () => api.get(`/api/task-runs/${id}`) });
-  const tr = trQ.data;
+  const tr: any = trQ.data;
 
   const teamId = tr?.run?.assignment?.teamId;
   const teamsQ = useQuery({
@@ -24,14 +24,14 @@ export default function TaskRunDetail() {
     queryFn: () => api.get('/api/teams'),
     enabled: !!teamId,
   });
-  const team = (teamsQ.data || []).find((t) => t.id === teamId);
+  const team = ((teamsQ.data as any[]) || []).find((t: any) => t.id === teamId);
 
   const assign = useMutation({
     mutationFn: () => api.post(`/api/task-runs/${id}/assign`, { userId: assigneeId }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['taskRun', id] }),
   });
 
-  const decide = useMutation({
+  const decide = useMutation<any, any, { approvalId: string; decision: string }>({
     mutationFn: ({ approvalId, decision }) =>
       api.post(`/api/approvals/${approvalId}/decide`, { decision, comment: comment || undefined }),
     onSuccess: () => {
@@ -47,9 +47,9 @@ export default function TaskRunDetail() {
   const proofs = tr.proofs || [];
   const answers = tr.answers || [];
   const approvals = tr.approvals || [];
-  const pending = approvals.find((a) => a.decision === 'PENDING');
+  const pending = approvals.find((a: any) => a.decision === 'PENDING');
   const questions = tr.task?.questionGroup?.questions || [];
-  const answerByQ = new Map(answers.map((a) => [a.questionId, a]));
+  const answerByQ = new Map<string, any>(answers.map((a: any) => [a.questionId, a]));
 
   return (
     <div>
@@ -65,6 +65,11 @@ export default function TaskRunDetail() {
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 16 }}>
         <Card>
+          {!tr.viewerCanAct && (
+            <div style={{ marginBottom: 16, padding: 12, borderRadius: 10, background: 'var(--surface-alt)', fontSize: 13 }}>
+              Bu kayıt sana bilgi amaçlı görünüyor. İşlem yapma yetkisi atanan kişi/katılımcıda.
+            </div>
+          )}
           {tr.task.description && (
             <>
               <SectionLabel>Görev tanımı</SectionLabel>
@@ -114,11 +119,35 @@ export default function TaskRunDetail() {
             </div>
           )}
 
+          {tr.run.assignment.group.questionGroup && (
+            <>
+              <SectionLabel>Grup checklisti · {tr.run.assignment.group.questionGroup.name}</SectionLabel>
+              <div className="list" style={{ marginBottom: 16 }}>
+                {tr.run.assignment.group.questionGroup.questions.map((q: any) => {
+                  const ans = answerByQ.get(q.id);
+                  return (
+                    <div key={q.id} className="list-item">
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: 13 }}>
+                          {q.text} {q.required && <span style={{ color: 'var(--danger)' }}>*</span>}
+                        </div>
+                        <div className="muted" style={{ fontSize: 11 }}>
+                          {tr.run.assignment.group.checklistRequirement === 'MANDATORY' ? 'Zorunlu grup checklisti' : 'Opsiyonel grup checklisti'}
+                        </div>
+                      </div>
+                      {ans ? <Pill tone={ans.value === 'EVET' || ans.value === 'YES' ? 'accent' : 'mute'}>{ans.value}</Pill> : <Pill tone="mute">—</Pill>}
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          )}
+
           {questions.length > 0 && (
             <>
               <SectionLabel>Checklist · {tr.task.questionGroup.name}</SectionLabel>
               <div className="list" style={{ marginBottom: 16 }}>
-                {questions.map((q) => {
+                {questions.map((q: any) => {
                   const ans = answerByQ.get(q.id);
                   return (
                     <div key={q.id} className="list-item">
@@ -142,7 +171,7 @@ export default function TaskRunDetail() {
             <>
               <SectionLabel>Onay geçmişi</SectionLabel>
               <div className="list" style={{ marginBottom: 16 }}>
-                {approvals.map((a) => (
+                {approvals.map((a: any) => (
                   <div key={a.id} className="list-item">
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 13, fontWeight: 600 }}>

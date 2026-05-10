@@ -39,7 +39,7 @@ export function Layout() {
           <BrandLogo />
         </div>
         <Button variant="accent" size="sm" onClick={() => setQuickOpen(true)} style={{ margin: '0 12px 12px' }}>
-          + Hızlı görev
+          + Hızlı atama
         </Button>
         <nav style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1 }}>
           {NAV.map((n) => (

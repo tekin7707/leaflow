@@ -6,6 +6,7 @@ import { prisma } from '../db.js';
 import { adapters } from '../adapters/index.js';
 import { requireAuth, getFreshUpstreamToken } from '../auth.js';
 import { wrap, notFound, badRequest, forbidden, unauthorized } from '../errors.js';
+import { syncIndividualAssignmentsForTeamMember } from '../services/assignmentParticipants.js';
 
 export const teamsRoutes = express.Router();
 teamsRoutes.use(requireAuth);
@@ -232,33 +233,62 @@ teamsRoutes.get(
   '/users/search',
   wrap(async (req, res) => {
     const q = String(req.query.q ?? '');
-    const accessToken = await requireUpstream(req.user.id);
-    const users = await adapters.teams.searchUsers(q, accessToken);
-    // Mirror so we can resolve ids when assigning tasks locally.
-    for (const u of users) await upsertExternalUser(u);
-    const local = await prisma.user.findMany({
-      where: { externalId: { in: users.map((u) => u.externalId) } },
-    });
-    const byExt = new Map(local.map((u) => [u.externalId, u]));
-    res.json(
-      users.map((u) => {
-        const lu = byExt.get(u.externalId);
-        return {
-          id: lu?.id,
-          externalId: u.externalId,
-          email: u.email,
-          displayName: u.displayName,
-          firstName: u.firstName,
-          lastName: u.lastName,
-          avatarUrl: u.avatarUrl,
-          role: u.role,
-        };
-      }).filter((u) =>
-        !q
-          ? true
-          : (u.email + ' ' + u.displayName).toLowerCase().includes(q.toLowerCase()),
-      ),
-    );
+    try {
+      const accessToken = await requireUpstream(req.user.id);
+      const users = await adapters.teams.searchUsers(q, accessToken);
+      for (const u of users) await upsertExternalUser(u);
+      const local = await prisma.user.findMany({
+        where: { externalId: { in: users.map((u) => u.externalId) } },
+      });
+      const byExt = new Map(local.map((u) => [u.externalId, u]));
+      return res.json(
+        users.map((u) => {
+          const lu = byExt.get(u.externalId);
+          return {
+            id: lu?.id,
+            externalId: u.externalId,
+            email: u.email,
+            displayName: u.displayName,
+            firstName: u.firstName,
+            lastName: u.lastName,
+            avatarUrl: u.avatarUrl,
+            role: u.role,
+          };
+        }).filter((u) =>
+          !q
+            ? true
+            : (u.email + ' ' + u.displayName).toLowerCase().includes(q.toLowerCase()),
+        ),
+      );
+    } catch (error: any) {
+      if (error?.status !== 401 && error?.status !== 403) throw error;
+
+      const users = await prisma.user.findMany({
+        where: q
+          ? {
+            OR: [
+              { email: { contains: q, mode: 'insensitive' } },
+              { displayName: { contains: q, mode: 'insensitive' } },
+              { firstName: { contains: q, mode: 'insensitive' } },
+              { lastName: { contains: q, mode: 'insensitive' } },
+            ],
+          }
+          : undefined,
+        orderBy: { displayName: 'asc' },
+        take: 50,
+      });
+
+      return res.json(users.map((u) => ({
+        id: u.id,
+        externalId: u.externalId,
+        email: u.email,
+        displayName: u.displayName,
+        firstName: u.firstName,
+        lastName: u.lastName,
+        avatarUrl: u.avatarUrl,
+        role: u.agentechRole,
+      })));
+    }
   }),
 );
 
@@ -284,6 +314,7 @@ teamsRoutes.post(
       create: { teamId: team.id, userId: user.id, role },
       include: { user: true },
     });
+    await syncIndividualAssignmentsForTeamMember(team.id, user.id);
     res.status(201).json(m);
   }),
 );

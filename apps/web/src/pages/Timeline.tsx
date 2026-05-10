@@ -67,7 +67,7 @@ export default function Timeline() {
                 <div className="col">
                   {items.map((tr) => (
                     <Link key={tr.id} to={`/task-runs/${tr.id}`} style={{ textDecoration: 'none' }}>
-                      <Card pad="sm" style={{ cursor: 'pointer' }}>
+                      <Card pad="sm" style={{ cursor: 'pointer', opacity: tr.viewerCanAct ? 1 : 0.78, background: tr.viewerCanAct ? undefined : 'var(--surface-alt)' }}>
                         <div style={{ fontWeight: 600, fontSize: 13 }}>{tr.task.name}</div>
                         <div className="muted" style={{ fontSize: 11, marginTop: 4 }}>
                           {tr.run.assignment.group.name}
@@ -75,6 +75,7 @@ export default function Timeline() {
                         <div style={{ display: 'flex', gap: 4, marginTop: 8 }}>
                           <Pill>{tr.run.assignment.team.name}</Pill>
                           <Pill>{fmtDay(tr.run.date)}</Pill>
+                          <Pill tone={tr.viewerCanAct ? 'accent' : 'mute'}>{tr.viewerCanAct ? 'Aksiyon' : 'İzleme'}</Pill>
                         </div>
                       </Card>
                     </Link>
@@ -109,6 +110,7 @@ export default function Timeline() {
                   <td className="muted">{tr.run.assignment.group.name}</td>
                   <td>{tr.run.assignment.team.name}</td>
                   <td className="mono" style={{ fontSize: 12 }}>{fmtDay(tr.run.date)}</td>
+                  <td><Pill tone={tr.viewerCanAct ? 'accent' : 'mute'}>{tr.viewerCanAct ? 'Aksiyon' : 'İzleme'}</Pill></td>
                   <td><StatusPill status={tr.status} /></td>
                 </tr>
               ))}

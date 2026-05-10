@@ -1,7 +1,7 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { T, statusTone, statusLabel } from './theme';
 
-export function Card({ children, style }) {
+export function Card({ children, style = undefined }) {
   return <View style={[s.card, style]}>{children}</View>;
 }
 
@@ -48,7 +48,7 @@ export function Btn({ children, onPress, variant = 'primary', disabled, style })
   );
 }
 
-export function SectionLabel({ children, style }) {
+export function SectionLabel({ children, style = undefined }) {
   return (
     <Text style={[{ fontSize: 10, fontWeight: '700', letterSpacing: 1.4, color: T.muteSoft, textTransform: 'uppercase', marginBottom: 8 }, style]}>
       {children}

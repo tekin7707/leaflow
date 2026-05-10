@@ -48,7 +48,7 @@ export default function PoolScreen({ navigation }: any) {
         }
         renderItem={({ item }) => (
           <TouchableOpacity onPress={() => navigation.navigate('TaskWizard', { taskRunId: item.id })}>
-            <Card>
+            <Card style={{ opacity: item.viewerCanAct ? 1 : 0.76 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                 <View style={{ flex: 1, paddingRight: 8 }}>
                   <Text style={s.taskName}>{item.task.name}</Text>
@@ -59,6 +59,7 @@ export default function PoolScreen({ navigation }: any) {
               <View style={{ flexDirection: 'row', gap: 6, marginTop: 8, flexWrap: 'wrap' }}>
                 <Pill>{item.run.assignment.team.name}</Pill>
                 <Pill>{fmtDay(item.run.date)}</Pill>
+                <Pill tone={item.viewerCanAct ? 'accent' : 'mute'}>{item.viewerCanAct ? 'Aksiyon' : 'İzleme'}</Pill>
               </View>
             </Card>
           </TouchableOpacity>

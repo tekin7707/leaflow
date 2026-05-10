@@ -46,6 +46,30 @@ export const ApprovalDecision = {
 } as const;
 export type ApprovalDecision = (typeof ApprovalDecision)[keyof typeof ApprovalDecision];
 
+export const TaskGroupKind = {
+  SIMPLE: 'SIMPLE',
+  GROUP: 'GROUP',
+} as const;
+export type TaskGroupKind = (typeof TaskGroupKind)[keyof typeof TaskGroupKind];
+
+export const ExecutionMode = {
+  REPRESENTATIVE: 'REPRESENTATIVE',
+  INDIVIDUAL: 'INDIVIDUAL',
+} as const;
+export type ExecutionMode = (typeof ExecutionMode)[keyof typeof ExecutionMode];
+
+export const ApprovalMode = {
+  NONE: 'NONE',
+  TEAM_MANAGER: 'TEAM_MANAGER',
+} as const;
+export type ApprovalMode = (typeof ApprovalMode)[keyof typeof ApprovalMode];
+
+export const ChecklistRequirement = {
+  OPTIONAL: 'OPTIONAL',
+  MANDATORY: 'MANDATORY',
+} as const;
+export type ChecklistRequirement = (typeof ChecklistRequirement)[keyof typeof ChecklistRequirement];
+
 export const NotificationKind = {
   ASSIGNMENT_NEW: 'ASSIGNMENT_NEW',
   TASK_DUE_SOON: 'TASK_DUE_SOON',

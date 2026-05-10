@@ -1,5 +1,5 @@
-import { Link, useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '../api';
 import { Card, SectionLabel, Pill, Button } from '../components/UI';
 
@@ -7,7 +7,16 @@ const fmt = (d) => new Date(d).toLocaleDateString('tr-TR', { day: '2-digit', mon
 
 export default function TaskGroupDetail() {
   const { id } = useParams();
+  const nav = useNavigate();
+  const qc = useQueryClient();
   const q = useQuery({ queryKey: ['tg', id], queryFn: () => api.get(`/api/task-groups/${id}`) });
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ['tg'] });
+    qc.invalidateQueries({ queryKey: ['tg', id] });
+  };
+  const suspend = useMutation({ mutationFn: (assignmentId: string) => api.post(`/api/assignments/${assignmentId}/suspend`, {}), onSuccess: refresh });
+  const activate = useMutation({ mutationFn: (assignmentId: string) => api.post(`/api/assignments/${assignmentId}/activate`, {}), onSuccess: refresh });
+  const remove = useMutation({ mutationFn: (assignmentId: string) => api.del(`/api/assignments/${assignmentId}`), onSuccess: refresh });
   const g = q.data;
   if (!g) return <div className="muted">Yükleniyor…</div>;
 
@@ -19,13 +28,21 @@ export default function TaskGroupDetail() {
           <h1 className="h-serif" style={{ fontStyle: 'italic', fontSize: 32, margin: 0 }}>{g.name}</h1>
           {g.description && <div className="muted" style={{ marginTop: 4 }}>{g.description}</div>}
         </div>
-        <Link to={`/assignments/new?groupId=${g.id}`}><Button variant="accent">+ Atama yap</Button></Link>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Button variant="ghost" onClick={() => nav(`/task-groups/${g.id}/edit`)}>Düzenle</Button>
+          <Button variant="accent" onClick={() => nav(`/assignments/new?groupId=${g.id}`)}>+ Atama yap</Button>
+        </div>
       </div>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+        <Pill>{g.kind === 'SIMPLE' ? 'Basit görev' : 'Görev grubu'}</Pill>
+        <Pill>{g.defaultExecutionMode === 'INDIVIDUAL' ? 'Bireysel çalışma' : 'Temsilci çalışma'}</Pill>
         {g.recurrence && <Pill tone="accent">{g.recurrence}</Pill>}
         {g.requiresApproval && <Pill tone="warn">Grup onayı</Pill>}
+        {g.defaultApprovalMode === 'TEAM_MANAGER' && <Pill tone="warn">Takım yöneticisi onayı</Pill>}
         {g.minFiles > 0 && <Pill>min {g.minFiles} dosya</Pill>}
+        {g.questionGroup && <Pill tone={g.checklistRequirement === 'MANDATORY' ? 'warn' : 'accent'}>{g.checklistRequirement === 'MANDATORY' ? 'Zorunlu grup checklisti' : 'Opsiyonel grup checklisti'}</Pill>}
+        {g.questionGroup && <Pill tone="accent">{g.questionGroup.name}</Pill>}
       </div>
 
       <div className="grid-2">
@@ -42,7 +59,9 @@ export default function TaskGroupDetail() {
                 <div style={{ display: 'flex', gap: 6, marginLeft: 32, flexWrap: 'wrap' }}>
                   {t.requiresApproval && <Pill tone="warn">onay</Pill>}
                   {t.minFiles > 0 && <Pill>min {t.minFiles} dosya</Pill>}
+                  {t.questionGroup && <Pill tone={t.checklistRequirement === 'MANDATORY' ? 'warn' : 'accent'}>{t.checklistRequirement === 'MANDATORY' ? 'Zorunlu checklist' : 'Opsiyonel checklist'}</Pill>}
                   {t.questionGroup && <Pill tone="accent">{t.questionGroup.name}</Pill>}
+                  {!t.questionGroup && <Pill tone="mute">Checklist yok</Pill>}
                   {t.dependsOn?.length > 0 && (
                     <Pill>
                       ← {t.dependsOn
@@ -68,8 +87,19 @@ export default function TaskGroupDetail() {
                   <div className="muted" style={{ fontSize: 12 }}>
                     {fmt(a.startsAt)} → {fmt(a.endsAt)}
                   </div>
+                  <div className="muted" style={{ fontSize: 12 }}>
+                    {a.executionMode === 'INDIVIDUAL' ? 'Bireysel' : 'Temsilci'} · {a.approvalMode === 'TEAM_MANAGER' ? 'Yönetici onayı' : 'Onaysız'}
+                  </div>
                 </div>
-                <Pill tone={a.status === 'ACTIVE' ? 'accent' : 'mute'}>{a.status}</Pill>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <Pill tone={a.status === 'ACTIVE' ? 'accent' : a.status === 'SUSPENDED' ? 'warn' : 'mute'}>{a.status}</Pill>
+                  {a.status !== 'SUSPENDED' ? (
+                    <Button size="sm" variant="ghost" onClick={() => suspend.mutate(a.id)}>Askıya al</Button>
+                  ) : (
+                    <Button size="sm" variant="ghost" onClick={() => activate.mutate(a.id)}>Aktif et</Button>
+                  )}
+                  <Button size="sm" variant="danger" onClick={() => remove.mutate(a.id)}>Sil</Button>
+                </div>
               </div>
             ))}
           </div>

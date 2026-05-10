@@ -12,6 +12,7 @@ import Teams from './pages/Teams';
 import Checklists from './pages/Checklists';
 import TaskGroups from './pages/TaskGroups';
 import TaskGroupDetail from './pages/TaskGroupDetail';
+import TaskGroupEdit from './pages/TaskGroupEdit';
 import AssignmentNew from './pages/AssignmentNew';
 import Timeline from './pages/Timeline';
 import Approvals from './pages/Approvals';
@@ -45,6 +46,7 @@ createRoot(document.getElementById('root')).render(
               <Route path="checklists" element={<Checklists />} />
               <Route path="task-groups" element={<TaskGroups />} />
               <Route path="task-groups/:id" element={<TaskGroupDetail />} />
+              <Route path="task-groups/:id/edit" element={<TaskGroupEdit />} />
               <Route path="assignments/new" element={<AssignmentNew />} />
               <Route path="timeline" element={<Timeline />} />
               <Route path="approvals" element={<Approvals />} />

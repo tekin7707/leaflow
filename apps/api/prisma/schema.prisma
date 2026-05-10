@@ -23,6 +23,8 @@ model User {
   createdAt   DateTime @default(now())
 
   memberships TeamMember[]
+  assignmentParticipants AssignmentParticipant[]
+  participantRuns TaskGroupRun[]
   taskRuns    TaskRun[]    @relation("Assignee")
   decisions   Approval[]   @relation("Approver")
 }
@@ -43,6 +45,26 @@ enum TeamRole {
   MEMBER
 }
 
+enum TaskGroupKind {
+  SIMPLE
+  GROUP
+}
+
+enum ExecutionMode {
+  REPRESENTATIVE
+  INDIVIDUAL
+}
+
+enum AssignmentTargetMode {
+  TEAM
+  USER
+}
+
+enum ApprovalMode {
+  NONE
+  TEAM_MANAGER
+}
+
 model TeamMember {
   id     String   @id @default(cuid())
   team   TeamRef  @relation(fields: [teamId], references: [id], onDelete: Cascade)
@@ -60,6 +82,7 @@ model QuestionGroup {
   createdAt DateTime   @default(now())
   questions Question[]
   tasks     Task[]
+  taskGroups TaskGroup[]
 }
 
 enum AnswerType {
@@ -67,6 +90,11 @@ enum AnswerType {
   YES_NO_NA
   TEXT
   NUMBER
+}
+
+enum ChecklistRequirement {
+  OPTIONAL
+  MANDATORY
 }
 
 model Question {
@@ -86,9 +114,15 @@ model TaskGroup {
   id               String   @id @default(cuid())
   name             String
   description      String?
+  kind             TaskGroupKind @default(GROUP)
+  defaultExecutionMode ExecutionMode @default(REPRESENTATIVE)
+  defaultApprovalMode ApprovalMode @default(NONE)
   requiresApproval Boolean  @default(false)
   minFiles         Int      @default(0)
   recurrence       String?
+  questionGroup    QuestionGroup? @relation(fields: [questionGroupId], references: [id])
+  questionGroupId  String?
+  checklistRequirement ChecklistRequirement @default(OPTIONAL)
   createdAt        DateTime @default(now())
 
   tasks       Task[]
@@ -107,14 +141,19 @@ model Task {
   requiresApproval Boolean        @default(false)
   questionGroup    QuestionGroup? @relation(fields: [questionGroupId], references: [id])
   questionGroupId  String?
+  checklistRequirement ChecklistRequirement @default(OPTIONAL)
   dependsOn        String[]       @default([])
+  archivedAt       DateTime?
 
   taskRuns TaskRun[]
+
+  @@index([groupId, archivedAt])
 }
 
 enum AssignmentStatus {
   SCHEDULED
   ACTIVE
+  SUSPENDED
   COMPLETED
   CANCELLED
 }
@@ -129,10 +168,28 @@ model Assignment {
   endsAt      DateTime
   approverId  String?
   createdById String?
+  targetMode  AssignmentTargetMode @default(TEAM)
+  executionMode ExecutionMode @default(REPRESENTATIVE)
+  approvalMode  ApprovalMode @default(NONE)
   status      AssignmentStatus @default(SCHEDULED)
   createdAt   DateTime         @default(now())
 
+  participants AssignmentParticipant[]
   runs TaskGroupRun[]
+}
+
+model AssignmentParticipant {
+  id            String     @id @default(cuid())
+  assignment    Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  assignmentId  String
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId        String
+  joinedAfterAssignment Boolean @default(false)
+  createdAt     DateTime   @default(now())
+
+  @@unique([assignmentId, userId])
+  @@index([assignmentId])
+  @@index([userId])
 }
 
 enum RunStatus {
@@ -146,12 +203,15 @@ model TaskGroupRun {
   id           String     @id @default(cuid())
   assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
   assignmentId String
+  participantUserId String?
+  participant   User?     @relation(fields: [participantUserId], references: [id], onDelete: SetNull)
   date         DateTime
   status       RunStatus  @default(PENDING)
 
   taskRuns TaskRun[]
 
-  @@unique([assignmentId, date])
+  @@unique([assignmentId, date, participantUserId])
+  @@index([participantUserId])
 }
 
 enum TaskRunStatus {

@@ -1,4 +1,4 @@
-export function Card({ children, style, pad }) {
+export function Card({ children, style = undefined, pad = undefined }) {
   return (
     <div className={pad === 'sm' ? 'card card--pad-sm' : 'card'} style={style}>
       {children}
@@ -6,7 +6,7 @@ export function Card({ children, style, pad }) {
   );
 }
 
-export function Button({ children, variant = 'primary', size, icon, ...rest }) {
+export function Button({ children, variant = 'primary', size = undefined, icon = null, ...rest }) {
   const cls = ['btn'];
   if (variant === 'accent') cls.push('btn--accent');
   if (variant === 'ghost') cls.push('btn--ghost');
@@ -25,8 +25,8 @@ export function Pill({ children, tone = 'mute' }) {
   return <span className={`pill ${tone !== 'mute' ? `pill--${tone}` : ''}`}>{children}</span>;
 }
 
-export function SectionLabel({ children }) {
-  return <div className="section-label">{children}</div>;
+export function SectionLabel({ children, style = undefined }) {
+  return <div className="section-label" style={style}>{children}</div>;
 }
 
 export function Avatar({ name = '?', size = 32 }) {

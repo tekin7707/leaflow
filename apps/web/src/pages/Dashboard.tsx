@@ -41,7 +41,7 @@ export default function Dashboard() {
             {fmtDate(new Date())}
           </h1>
         </div>
-        <Button variant="accent" onClick={() => setQuickOpen(true)}>+ Hızlı görev</Button>
+        <Button variant="accent" onClick={() => setQuickOpen(true)}>+ Hızlı atama</Button>
       </div>
 
       <QuickTaskModal open={quickOpen} onClose={() => setQuickOpen(false)} />
@@ -79,13 +79,19 @@ export default function Dashboard() {
           {today.length === 0 && <Empty>Bugün için açık görev yok.</Empty>}
           <div className="list">
             {today.map((tr) => (
-              <Link to={`/task-runs/${tr.id}`} key={tr.id} className="list-item">
+              <Link
+                to={`/task-runs/${tr.id}`}
+                key={tr.id}
+                className="list-item"
+                style={{ background: tr.viewerCanAct ? 'transparent' : 'var(--surface-alt)', borderRadius: 10, opacity: tr.viewerCanAct ? 1 : 0.8 }}
+              >
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 600, fontSize: 14 }}>{tr.task.name}</div>
                   <div className="muted" style={{ fontSize: 12 }}>
                     {tr.run.assignment.group.name} · {tr.run.assignment.team.name}
                   </div>
                 </div>
+                <Pill tone={tr.viewerCanAct ? 'accent' : 'mute'}>{tr.viewerCanAct ? 'Aksiyon sende' : 'İzleme'}</Pill>
                 <StatusPill status={tr.status} />
                 <div className="muted-soft mono" style={{ fontSize: 11 }}>
                   {fmtTime(tr.run.date)}
